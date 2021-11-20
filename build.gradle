@@ -1,0 +1,57 @@
+plugins {
+  id "org.jetbrains.intellij" version "1.2.1"
+}
+
+group 'com.linuxgods.kreiger'
+version = '1.0'
+
+repositories {
+  mavenCentral()
+  maven {
+    url 'https://nexus.pentaho.org/content/groups/omni/'
+  }
+}
+
+configurations {
+  pdiPlugins
+}
+
+dependencies {
+  def pentahoKettleVersion = '8.3.0.0-371'
+  //def pentahoKettleVersion = '9.2.0.0-290'
+  implementation('pentaho-kettle:kettle-engine:' + pentahoKettleVersion) {
+    //exclude group: '*'
+
+    exclude group: 'cglib'
+    exclude group: 'xerces'
+    exclude group: 'xml-apis'
+    exclude group: 'org.slf4j'
+
+  }
+  implementation('pentaho-kettle:kettle-ui-swt:' + pentahoKettleVersion) {
+    exclude group: '*'
+    //exclude group: 'org.eclipse.core'
+  }
+  pdiPlugins('org.pentaho.di:pdi-plugins:'+pentahoKettleVersion)
+  implementation 'org.javassist:javassist:3.28.0-GA'
+  implementation 'org.scannotation:scannotation:1.0.3'
+
+  def pdiPluginsUnzipped = configurations.pdiPlugins.collect { zipTree(it) }
+  testImplementation pdiPluginsUnzipped
+}
+
+//configurations.pdiPlugins.collect { zipTree(it) }.forEach { println it.class }
+
+intellij {
+  type = 'IU'
+  version = "2021.2.3"
+  pluginName = 'pentaho-kettle'
+  plugins = [
+          'org.intellij.plugins.markdown',
+          'DatabaseTools',
+          'JavaEE',
+          'maven',
+          'gradle'
+  ]
+  downloadSources = true
+}

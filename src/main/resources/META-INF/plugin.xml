@@ -1,0 +1,83 @@
+<idea-plugin>
+    <id>com.linuxgods.kreiger.idea.pentaho.kettle</id>
+    <name>Pentaho Kettle plugin</name>
+    <version>1.0</version>
+    <vendor email="support@yourcompany.com" url="http://www.yourcompany.com">YourCompany</vendor>
+
+    <description><![CDATA[
+      Enter short description for your plugin here.<br>
+      <em>most HTML tags may be used</em>
+    ]]></description>
+
+    <change-notes><![CDATA[
+      Add change notes here.<br>
+      <em>most HTML tags may be used</em>
+    ]]>
+    </change-notes>
+
+    <!-- please see https://plugins.jetbrains.com/docs/intellij/build-number-ranges.html for description -->
+    <!-- idea-version since-build="173.0"/ -->
+
+    <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html
+         on how to target different products -->
+    <depends>com.intellij.modules.ultimate</depends>
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.lang</depends>
+    <depends>com.intellij.modules.xml</depends>
+    <depends>com.intellij.modules.database</depends>
+    <depends>com.intellij.modules.sql</depends>
+    <depends>com.intellij.database</depends>
+    <depends>com.intellij.javaee</depends>
+    <!-- depends>org.intellij.plugins.markdown</depends -->
+
+    <applicationListeners>
+        <!-- listener class="com.linuxgods.kreiger.idea.pentaho.kettle.sdk.PdiProjectJdkTableListener"
+                  topic="com.intellij.openapi.projectRoots.ProjectJdkTable$Listener" / -->
+    </applicationListeners>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <fileType name="KTR"
+                  extensions="ktr"
+                  language="PentahoKettleTransformation"
+                  fieldName="INSTANCE"
+                  implementationClass="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.TransformationFileType"/>
+        <lang.parserDefinition
+                language="PentahoKettleTransformation"
+                implementationClass="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.TransformationParserDefinition"/>
+        <fileEditorProvider
+                implementation="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.TransformationFileEditorProvider"/>
+        <multiHostInjector implementation="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.SqlInjector"/>
+        <dom.fileMetaData
+                domVersion="1"
+                implementation="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.TransformationDomFileDescription"
+                rootTagName="transformation"
+        />
+        <lang.foldingBuilder language="PentahoKettleTransformation"
+                             implementationClass="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.TransformationFoldingBuilder"/>
+        <sdkType implementation="com.linuxgods.kreiger.idea.pentaho.kettle.sdk.PdiSdkType"/>
+        <facetType implementation="com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacetType"/>
+        <framework.detector implementation="com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFrameworkDetector"/>
+        <frameworkSupport
+                implementation="com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacetBasedFrameworkSupportProvider"/>
+        <projectSdkSetupValidator implementation="com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacetSdkSetupValidator" />
+    </extensions>
+
+    <actions>
+        <group id="PentahoKettleTransformationPopupGroup"/>
+        <action id="com.linuxgods.kreiger.idea.pentaho.kettle.spoon.OpenInSpoonAction"
+                class="com.linuxgods.kreiger.idea.pentaho.kettle.spoon.OpenInSpoonAction"
+                icon="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.KettleIcons.KETTLE_ICON"
+                text="Spoon">
+            <add-to-group group-id="RevealGroup"  anchor="first" />
+            <add-to-group group-id="PentahoKettleTransformationPopupGroup" anchor="first" />
+            <override-text place="PentahoGraph" text="Open in Spoon" />
+        </action>
+        <group id="PentahoKettleTransformationGraphToolbar">
+            <reference ref="Graph.ZoomIn"/>
+            <reference ref="Graph.ZoomOut"/>
+            <reference ref="Graph.ActualSize"/>
+            <reference ref="Graph.FitContent"/>
+        </group>
+    </actions>
+
+</idea-plugin>
