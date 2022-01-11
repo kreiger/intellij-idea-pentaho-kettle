@@ -1,28 +1,44 @@
 package com.linuxgods.kreiger.idea.pentaho.kettle.transformation;
 
 import com.intellij.lang.ASTNode;
+import com.intellij.lang.folding.FoldingBuilder;
 import com.intellij.lang.folding.FoldingBuilderEx;
 import com.intellij.lang.folding.FoldingDescriptor;
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.editor.FoldingGroup;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.patterns.XmlPatterns;
+import com.intellij.patterns.XmlTagPattern;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.XmlRecursiveElementVisitor;
 import com.intellij.psi.xml.*;
+import com.intellij.util.text.TextRangeUtil;
+import com.intellij.util.text.TextRanges;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
+import static com.intellij.patterns.XmlPatterns.xmlTag;
+import static java.util.Objects.requireNonNullElse;
+import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.StringUtils.*;
 
 public class TransformationFoldingBuilder extends FoldingBuilderEx implements DumbAware {
 
     private static final @NotNull Key<Integer> LONGEST_FROM = Key.create("KETTLE_TRANSFORMATION_LONGEST_FROM");
     private static final @NotNull Key<Integer> LONGEST_TO = Key.create("KETTLE_TRANSFORMATION_LONGEST_TO");
+    private static final XmlTagPattern.Capture TRANSFORMATION_PATTERN = xmlTag().withLocalName("transformation");
+    private static final XmlTagPattern.@NotNull Capture STEP_PATTERN =
+            xmlTag().withLocalName("step")
+            .withParent(TRANSFORMATION_PATTERN);
+    private static final XmlTagPattern.@NotNull Capture HOP_PATTERN =
+            xmlTag().withLocalName("hop")
+            .withParent(xmlTag().withLocalName("order")
+                    .withParent(TRANSFORMATION_PATTERN));
 
     @Override
     public FoldingDescriptor @NotNull [] buildFoldRegions(@NotNull PsiElement root, @NotNull Document document, boolean quick) {
@@ -48,9 +64,36 @@ public class TransformationFoldingBuilder extends FoldingBuilderEx implements Du
                     return;
                 }
 
-                XmlText from = getSubTagXmlText(xmlTag, "from");
-                XmlText to = getSubTagXmlText(xmlTag, "to");
-                if (null != from && null != to) {
+                if (STEP_PATTERN.accepts(xmlTag)) {
+                    String type = requireNonNullElse(xmlTag.getSubTagText("type"), "?");
+
+                    Set<String> excludedTagNames = Set.of("name", "type");
+                    FoldingGroup stepMetaGroup = FoldingGroup.newGroup("...StepMeta...");
+                    FoldingGroup typeMetaGroup = FoldingGroup.newGroup("..."+type+"...");
+                    FoldingGroup previous = null;
+                    List<TextRange> currentTextRanges = new ArrayList<>();
+                    for (XmlTag tag : xmlTag.getSubTags()) {
+                        String tagName = tag.getLocalName();
+                        FoldingGroup current;
+                        if (excludedTagNames.contains(tagName)) {
+                            current = null;
+                        } else if (isDefaultStepMetaTag(tag)) {
+                            current = stepMetaGroup;
+                        } else {
+                            current = typeMetaGroup;
+                        }
+                        if (current != previous) {
+                            add(xmlTag, currentTextRanges, previous, foldingDescriptors);
+                        }
+                        if (current != null) {
+                            currentTextRanges.add(tag.getTextRange());
+                        }
+                        previous = current;
+                    }
+                    add(xmlTag, currentTextRanges, previous, foldingDescriptors);
+                    return;
+                }
+                if (HOP_PATTERN.accepts(xmlTag)) {
                     foldingDescriptors.add(new FoldingDescriptor(xmlTag, xmlTag.getTextRange()));
                     return;
                 }
@@ -84,6 +127,35 @@ public class TransformationFoldingBuilder extends FoldingBuilderEx implements Du
             }
         }.visitElement(root);
         return foldingDescriptors.toArray(FoldingDescriptor[]::new);
+    }
+
+    private void add(XmlTag xmlTag, List<TextRange> currentTextRanges, FoldingGroup group, List<FoldingDescriptor> foldingDescriptors) {
+        if (!currentTextRanges.isEmpty()) {
+            TextRange textRange = TextRangeUtil.getEnclosingTextRange(currentTextRanges);
+            foldingDescriptors.add(new FoldingDescriptor(xmlTag.getNode(), textRange, group, group.toString()));
+            currentTextRanges.clear();
+        }
+    }
+
+    private boolean isDefaultStepMetaTag(XmlTag tag) {
+        String localName = tag.getLocalName();
+        switch (localName) {
+            case "description":
+            case "custom_distribution":
+            case "attributes":
+            case "cluster_schema":
+                return tag.isEmpty();
+            case "distribute":
+                return "Y".equals(tag.getValue().getText());
+            case "copies":
+                return "1".equals(tag.getValue().getText());
+            case "partitioning":
+                return "none".equals(tag.getSubTagText("method"));
+            case "remotesteps":
+            case "GUI":
+                return "Y".equals(tag.getSubTagText("draw"));
+        }
+        return false;
     }
 
     private boolean foldable(XmlTag xmlTag) {
@@ -140,7 +212,7 @@ public class TransformationFoldingBuilder extends FoldingBuilderEx implements Du
         if (null != from && null != to) {
             String fromValue = leftPad(from.getValue(), longestFromValueLength);
             String toValue = rightPad(to.getValue(), longestToValueLength);
-            return "<hop> <from> " + fromValue + " </from> <to> " + toValue+ " </to> </hop>";
+            return "<hop> " + fromValue + "  ->  " + toValue+ " </hop>";
         }
         return null;
     }

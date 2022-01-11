@@ -3,13 +3,16 @@ package com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom;
 import com.intellij.codeInsight.daemon.*;
 import com.intellij.ide.IconProvider;
 import com.intellij.ide.presentation.PresentationProvider;
+import com.intellij.lang.jvm.JvmModifier;
 import com.intellij.openapi.editor.markup.GutterIconRenderer;
 import com.intellij.openapi.paths.PathReference;
+import com.intellij.patterns.PsiElementPattern;
 import com.intellij.patterns.XmlElementPattern;
 import com.intellij.psi.*;
 import com.intellij.psi.xml.XmlTag;
 import com.intellij.psi.xml.XmlTagValue;
 import com.intellij.psi.xml.XmlText;
+import com.intellij.psi.xml.XmlTokenType;
 import com.intellij.util.xml.*;
 import com.intellij.util.xml.converters.PathReferenceConverter;
 import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacet;
@@ -19,9 +22,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
-import java.util.List;
-import java.util.OptionalInt;
+import java.util.*;
+import java.util.stream.Stream;
 
+import static com.intellij.patterns.PlatformPatterns.psiElement;
 import static com.intellij.patterns.XmlPatterns.xmlTag;
 import static com.intellij.patterns.XmlPatterns.xmlText;
 import static java.util.stream.Collectors.toList;
@@ -109,25 +113,35 @@ public interface Step extends DomElement {
 
     class StepLineMarkerProvider extends LineMarkerProviderDescriptor {
 
-        public static final XmlElementPattern.@NotNull XmlTextPattern STEP_TYPE_PATTERN = xmlText()
+        public static final PsiElementPattern.Capture<PsiElement> STEP_TYPE_PATTERN = psiElement().withElementType(XmlTokenType.XML_DATA_CHARACTERS).inside(xmlText()
                 .withParent(xmlTag().withLocalName("type")
-                        .withParent(xmlTag().withLocalName("step")));
+                        .withParent(xmlTag().withLocalName("step"))));
 
         @Override public LineMarkerInfo<?> getLineMarkerInfo(@NotNull PsiElement element) {
             if (!STEP_TYPE_PATTERN.accepts(element)) return null;
-            XmlText xmlText = (XmlText) element;
+            XmlText xmlText = (XmlText) element.getParent();
             String type = xmlText.getValue();
             System.out.println("Type: " + type);
             PdiFacet pdiFacet = PdiFacet.getInstance(element);
             return pdiFacet.getIcon(type)
 
                     .map(icon -> {
-                        List<PsiClass> stepMetaClasses = pdiFacet.findStepMetaClasses(type, element.getResolveScope()).collect(toList());
+                        List<NavigatablePsiElement> stepMetaClasses = pdiFacet.findStepMetaClasses(type, element.getResolveScope())
+                                .flatMap(psiClass -> Stream.<NavigatablePsiElement>concat(Stream.of(psiClass), getPublicMethods(psiClass, "getXML", "loadXML")))
+                                .collect(toList());
                         LineMarkerInfo<PsiElement> lineMarkerInfo = new LineMarkerInfo<>(element, element.getTextRange(), icon, null, new DefaultGutterIconNavigationHandler<>(stepMetaClasses, type), GutterIconRenderer.Alignment.RIGHT, () -> type);
                         return NavigateAction.setNavigateAction(lineMarkerInfo, "Go To "+type, "GotoClass", icon);
                     })
                     .orElse(null);
 
+        }
+
+        @NotNull
+        private Stream<? extends PsiMethod> getPublicMethods(PsiClass psiClass, String... methodNames) {
+            Set<String> methodNamesSet = Set.of(methodNames);
+            return Arrays.stream(psiClass.getMethods())
+                    .filter(psiMethod -> psiMethod.hasModifierProperty(PsiModifier.PUBLIC))
+                    .filter(psiMethod -> methodNamesSet.contains(psiMethod.getName()));
         }
 
         @Override public @Nullable("null means disabled") @GutterName String getName() {
