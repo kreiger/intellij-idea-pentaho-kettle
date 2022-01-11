@@ -26,6 +26,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.beans.PropertyChangeListener;
 import java.util.Map;
+import java.util.Optional;
 
 import static java.awt.RenderingHints.KEY_ANTIALIASING;
 import static java.awt.RenderingHints.VALUE_ANTIALIAS_ON;
@@ -37,27 +38,26 @@ public class TransformationFileEditor implements FileEditor {
     private final GraphComponent graphComponent;
     private final VirtualFile file;
 
-    public TransformationFileEditor(Project project, @NotNull VirtualFile file) {
+    public TransformationFileEditor(Project project, @NotNull VirtualFile file, PdiFacet pdiFacet) {
         this.file = file;
         this.graphComponent = new GraphComponent(file);
         JComponent graphViewComponent = graphComponent.getView();
         Transformation transformation = Transformation.getTransformation(project, file);
-        createGraph(project, file, graphViewComponent, transformation);
+        createGraph(project, file, graphViewComponent, transformation, pdiFacet);
 
         transformation.getManager().addDomEventListener(event -> {
                 LOGGER.warn("Document changed");
                 graphViewComponent.removeAll();
                 graphComponent.repaint();;
-                createGraph(project, file, graphViewComponent, transformation);
+                createGraph(project, file, graphViewComponent, transformation, pdiFacet);
                 graphComponent.revalidate();
                 graphComponent.repaint();
             }, this);
     }
 
-    private void createGraph(Project project, @NotNull VirtualFile file, JComponent graphViewComponent, Transformation transformation) {
-        PdiFacet facet = PdiFacet.getInstance(project, file);
+    private void createGraph(Project project, @NotNull VirtualFile file, JComponent graphViewComponent, Transformation transformation, PdiFacet pdiFacet) {
         Map<Step, StepComponent> stepComponents = transformation.getSteps().stream()
-                .collect(toMap(identity(), step -> createStepComponent(facet, step)));
+                .collect(toMap(identity(), step -> createStepComponent(pdiFacet, step)));
         for (StepComponent stepComponent : stepComponents.values()) {
             stepComponent.addMouseListener(new GoToStepListener(() -> {
                 Step step = stepComponent.getStep();

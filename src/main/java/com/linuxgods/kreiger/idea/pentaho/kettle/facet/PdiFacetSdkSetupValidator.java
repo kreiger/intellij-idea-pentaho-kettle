@@ -26,8 +26,11 @@ public class PdiFacetSdkSetupValidator implements ProjectSdkSetupValidator {
 
     @Override
     public @Nullable @NlsContexts.Label String getErrorMessage(@NotNull Project project, @NotNull VirtualFile file) {
-        PdiFacet pdiFacet = PdiFacet.getInstance(project, file);
-        return pdiFacet != null && pdiFacet.getConfiguration().getSdk() != null ? null : "No Pentaho Data Integration SDK defined for this module!";
+        return PdiFacet.getInstance(project, file)
+                .map(PdiFacet::getSdk)
+                .map(sdk -> (String)null)
+                .orElse("No Pentaho Data Integration SDK defined for this module!");
+
     }
 
     @Override

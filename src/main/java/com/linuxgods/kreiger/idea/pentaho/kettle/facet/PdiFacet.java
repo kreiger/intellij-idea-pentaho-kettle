@@ -5,6 +5,7 @@ import com.intellij.facet.FacetManager;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleUtilCore;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.projectRoots.Sdk;
 import com.intellij.openapi.util.NlsSafe;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.JavaPsiFacade;
@@ -26,17 +27,17 @@ public class PdiFacet extends Facet<PdiFacetConfiguration> {
         super(PdiFacetType.INSTANCE, module, name, configuration, underlyingFacet);
     }
 
-    public static PdiFacet getInstance(@NotNull PsiElement element) {
+    public static Optional<PdiFacet> getInstance(@NotNull PsiElement element) {
         return PdiFacet.getInstance(element.getProject(), element.getContainingFile().getVirtualFile());
     }
 
-    public static PdiFacet getInstance(@NotNull Module module) {
-        return FacetManager.getInstance(module).getFacetByType(PdiFacetType.ID);
+    public static Optional<PdiFacet> getInstance(@NotNull Module module) {
+        return Optional.ofNullable(FacetManager.getInstance(module).getFacetByType(PdiFacetType.ID));
     }
 
-    public static PdiFacet getInstance(@NotNull Project project, @NotNull VirtualFile file) {
-        Module module = ModuleUtilCore.findModuleForFile(file, project);
-        return getInstance(module);
+    public static Optional<PdiFacet> getInstance(@NotNull Project project, @NotNull VirtualFile file) {
+        return Optional.ofNullable(ModuleUtilCore.findModuleForFile(file, project))
+                .flatMap(PdiFacet::getInstance);
     }
 
     public Optional<Image> getImage(String id) {
@@ -57,13 +58,23 @@ public class PdiFacet extends Facet<PdiFacetConfiguration> {
     }
 
     public Stream<PsiClass> findStepMetaClasses(String type, @NotNull GlobalSearchScope resolveScope) {
-        return getSdkAdditionalData()
-                .flatMap(sdkAdditionalData -> sdkAdditionalData.getStep(type))
-                .map(Step::getClassName)
+        return getClassName(type)
                 .stream()
                 .flatMap(className -> {
                     JavaPsiFacade javaPsiFacade = JavaPsiFacade.getInstance(getModule().getProject());
                     return Stream.of(javaPsiFacade.findClasses(className, resolveScope));
                 });
+    }
+
+    @NotNull private Optional<String> getClassName(String type) {
+        return getSdkAdditionalData()
+                .flatMap(sdkAdditionalData -> sdkAdditionalData.getStep(type))
+                .map(Step::getClassName);
+    }
+
+
+    Optional<Sdk> getSdk() {
+        return Optional.of(getConfiguration())
+                .map(PdiFacetConfiguration::getSdk);
     }
 }

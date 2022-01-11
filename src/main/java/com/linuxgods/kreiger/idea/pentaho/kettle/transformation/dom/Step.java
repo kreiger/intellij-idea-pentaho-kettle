@@ -84,11 +84,12 @@ public interface Step extends DomElement {
         }
 
         @Override public @Nullable Icon getIcon(Step step) {
-            PdiFacet pdiFacet = PdiFacet.getInstance(step.getModule());
 
             String type = step.getType().getStringValue();
-            Icon icon = pdiFacet.getIcon(type).orElse(null);
-            return icon;
+            return Optional.ofNullable(step.getModule())
+                    .flatMap(PdiFacet::getInstance)
+                    .flatMap(pdiFacet -> pdiFacet.getIcon(type))
+                    .orElse(null);
         }
 
         @Override public @Nullable @Nls(capitalization = Nls.Capitalization.Title) String getTypeName(Step step) {
@@ -103,8 +104,9 @@ public interface Step extends DomElement {
                 XmlTag xmlTag = (XmlTag) element;
                 if ("type".equals(xmlTag.getName())) {
                     String type = xmlTag.getValue().getTrimmedText();
-                    PdiFacet pdiFacet = PdiFacet.getInstance(element.getProject(), element.getContainingFile().getVirtualFile());
-                    return pdiFacet.getIcon(type).orElse(null);
+                    return PdiFacet.getInstance(element.getProject(), element.getContainingFile().getVirtualFile())
+                            .flatMap(pdiFacet -> pdiFacet.getIcon(type))
+                            .orElse(null);
                 }
             }
             return null;
@@ -122,18 +124,20 @@ public interface Step extends DomElement {
             XmlText xmlText = (XmlText) element.getParent();
             String type = xmlText.getValue();
             System.out.println("Type: " + type);
-            PdiFacet pdiFacet = PdiFacet.getInstance(element);
-            return pdiFacet.getIcon(type)
-
-                    .map(icon -> {
-                        List<NavigatablePsiElement> stepMetaClasses = pdiFacet.findStepMetaClasses(type, element.getResolveScope())
-                                .flatMap(psiClass -> Stream.<NavigatablePsiElement>concat(Stream.of(psiClass), getPublicMethods(psiClass, "getXML", "loadXML")))
-                                .collect(toList());
-                        LineMarkerInfo<PsiElement> lineMarkerInfo = new LineMarkerInfo<>(element, element.getTextRange(), icon, null, new DefaultGutterIconNavigationHandler<>(stepMetaClasses, type), GutterIconRenderer.Alignment.RIGHT, () -> type);
-                        return NavigateAction.setNavigateAction(lineMarkerInfo, "Go To "+type, "GotoClass", icon);
-                    })
+            return PdiFacet.getInstance(element)
+                    .flatMap(pdiFacet -> pdiFacet.getIcon(type)
+                            .map(icon -> getPsiElementLineMarkerInfo(element, type, pdiFacet, icon)))
                     .orElse(null);
 
+        }
+
+        @NotNull
+        private LineMarkerInfo<PsiElement> getPsiElementLineMarkerInfo(PsiElement element, String type, PdiFacet pdiFacet, Icon icon) {
+            List<NavigatablePsiElement> stepMetaClasses = pdiFacet.findStepMetaClasses(type, element.getResolveScope())
+                    .flatMap(psiClass -> Stream.<NavigatablePsiElement>concat(Stream.of(psiClass), getPublicMethods(psiClass, "getXML", "loadXML")))
+                    .collect(toList());
+            LineMarkerInfo<PsiElement> lineMarkerInfo = new LineMarkerInfo<>(element, element.getTextRange(), icon, null, new DefaultGutterIconNavigationHandler<>(stepMetaClasses, type), GutterIconRenderer.Alignment.RIGHT, () -> type);
+            return NavigateAction.setNavigateAction(lineMarkerInfo, "Go To " + type, "GotoClass", icon);
         }
 
         @NotNull
@@ -155,8 +159,9 @@ public interface Step extends DomElement {
             return new PsiPolyVariantReferenceBase[]{new PsiPolyVariantReferenceBase<>(element, element.getTextRange(), true) {
                 @Override public ResolveResult @NotNull [] multiResolve(boolean incompleteCode) {
                     String type = value.getStringValue();
-                    System.out.println("multiResolve: "+value+" "+type);
-                    return PdiFacet.getInstance(element).findStepMetaClasses(type, element.getResolveScope())
+                    System.out.println("multiResolve: " + value + " " + type);
+                    return PdiFacet.getInstance(element).stream()
+                            .flatMap(pdiFacet -> pdiFacet.findStepMetaClasses(type, element.getResolveScope()))
                             .map(PsiElementResolveResult::new)
                             .toArray(ResolveResult[]::new);
                 }
