@@ -1,12 +1,6 @@
 package com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph;
 
 import com.intellij.openapi.graph.builder.GraphDataModel;
-import com.intellij.openapi.project.Project;
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.PsiManager;
-import com.intellij.psi.xml.XmlFile;
-import com.intellij.util.xml.DomFileElement;
-import com.intellij.util.xml.DomManager;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Transformation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -24,16 +18,11 @@ public class TransformationGraphDataModel extends GraphDataModel<Node, Edge> {
     private List<Edge> edges;
     private Map<String, Node> nodeMap;
 
-    public TransformationGraphDataModel(Project project, VirtualFile file) {
-        init(project, file);
+    public TransformationGraphDataModel(@NotNull Transformation transformation) {
+        init(transformation);
     }
 
-    public void init(Project project, VirtualFile file) {
-        PsiManager psiManager = PsiManager.getInstance(project);
-        XmlFile xmlFile = (XmlFile) psiManager.findFile(file);
-        DomManager domManager = DomManager.getDomManager(project);
-        DomFileElement<Transformation> fileElement = domManager.getFileElement(xmlFile, Transformation.class);
-        Transformation transformation = fileElement.getRootElement();
+    public void init(Transformation transformation) {
         Stream<StepNode> stepNodes = transformation.getSteps().stream().map(StepNode::new);
         Stream<NotepadNode> notepadNodes = transformation.getNotepads().getNotepads().stream().map(NotepadNode::new);
         List<Node> nodes = Stream.concat(stepNodes, notepadNodes).collect(toList());

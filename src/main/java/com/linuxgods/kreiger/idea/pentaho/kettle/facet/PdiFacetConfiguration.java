@@ -8,8 +8,12 @@ import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.projectRoots.ProjectJdkTable;
 import com.intellij.openapi.projectRoots.Sdk;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PdiFacetConfiguration implements FacetConfiguration, PersistentStateComponent<PdiFacetState> {
+    private final static Logger LOGGER = LoggerFactory.getLogger(PdiFacetConfiguration.class);
+
     private PdiFacetState state = new PdiFacetState();
 
     public PdiFacetConfiguration() {
@@ -33,11 +37,11 @@ public class PdiFacetConfiguration implements FacetConfiguration, PersistentStat
 
         ProjectJdkTable sdksTable = ProjectJdkTable.getInstance();
         Sdk sdk = sdksTable.findJdk(sdkName);
-
         return sdk;
     }
 
     public void setSdk(Sdk sdk) {
+
         getState().setSdkName(sdk == null ? null : sdk.getName());
     }
 

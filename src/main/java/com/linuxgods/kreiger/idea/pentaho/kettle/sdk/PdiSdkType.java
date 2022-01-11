@@ -13,6 +13,8 @@ import org.jdom.Element;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.io.IOException;
@@ -20,16 +22,19 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.PathMatcher;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Stream;
 
 import static com.linuxgods.kreiger.idea.pentaho.kettle.sdk.AnnotationsScanner.scanAnnotations;
-import static java.util.stream.Collectors.*;
-import static java.util.stream.StreamSupport.stream;
+import static java.util.stream.Collectors.toList;
 
 public class PdiSdkType extends SdkType {
     public final static PdiSdkType INSTANCE = new PdiSdkType();
+    public static final Logger LOGGER = LoggerFactory.getLogger(PdiSdkType.class);
 
     public PdiSdkType() {
         super("PentahoDataIntegration");
@@ -48,27 +53,28 @@ public class PdiSdkType extends SdkType {
     }
 
     @Override public boolean setupSdkPaths(@NotNull Sdk sdk, @NotNull SdkModel sdkModel) {
-        SdkModificator modificator = sdk.getSdkModificator();
-        Path kettleHome = Path.of(modificator.getHomePath());
-        modificator.setVersionString(getVersionString(sdk));
-        List<Path> libJars = getLibJars(kettleHome).collect(toList());
-        libJars.forEach(libJar -> modificator.addRoot(VfsUtil.getUrlForLibraryRoot(libJar.toFile()), OrderRootType.CLASSES));
-        Stream<Path> pluginsJars = getPluginsJars(kettleHome);
-        List<Path> paths = Stream.concat(libJars.stream(), pluginsJars).collect(toList());
-        List<URL> urls = paths.stream()
-                .map(PdiSdkAdditionalData::pathUrl)
-                .collect(toList());
-        Map<String, Step> steps = new HashMap<>();
-        ProgressManager.getInstance().run(new Task.Modal(null, "Scanning Pentaho PDI for steps", false) {
-            @Override public void run(@NotNull ProgressIndicator indicator) {
+        Boolean result = ProgressManager.getInstance().run(new Task.WithResult<>(null, "Scanning Pentaho PDI for steps", false) {
+
+            @Override public Boolean compute(@NotNull ProgressIndicator indicator) {
                 indicator.setIndeterminate(false);
+                SdkModificator modificator = sdk.getSdkModificator();
+                Path kettleHome = Path.of(modificator.getHomePath());
+                modificator.setVersionString(getVersionString(sdk));
+                List<Path> libJars = getLibJars(kettleHome).collect(toList());
+                libJars.forEach(libJar -> modificator.addRoot(VfsUtil.getUrlForLibraryRoot(libJar.toFile()), OrderRootType.CLASSES));
+                Stream<Path> pluginsJars = getPluginsJars(kettleHome);
+                List<Path> paths = Stream.concat(libJars.stream(), pluginsJars).collect(toList());
+                List<URL> urls = paths.stream()
+                        .map(PdiSdkAdditionalData::pathUrl)
+                        .collect(toList());
+                Map<String, Step> steps = new HashMap<>();
                 for (int i = 0, pathsSize = paths.size(); i < pathsSize; i++) {
                     indicator.setFraction(i / (float) urls.size());
                     Path path = paths.get(i);
                     URL url = PdiSdkAdditionalData.pathUrl(path);
                     Map<String, Step> urlSteps = new HashMap<>();
-                    scanAnnotations(url, (annotation, s) ->
-                            createStep(annotation)
+                    scanAnnotations(url, (annotation, className) ->
+                            createStep(annotation, className)
                                     .ifPresent(step -> urlSteps.put(step.getId(), step)));
                     if (!urlSteps.isEmpty()) {
                         String pluginClassUrl = VfsUtil.getUrlForLibraryRoot(path.toFile());
@@ -77,15 +83,18 @@ public class PdiSdkType extends SdkType {
                     }
                 }
                 indicator.setFraction(1);
+
+                URLClassLoader classLoader = PdiSdkAdditionalData.createClassLoader(urls);
+                InputStream kettleStepsXml = classLoader.getResourceAsStream("kettle-steps.xml");
+                KettleIcons.loadStepsXml(kettleStepsXml)
+                        .forEach(step -> steps.put(step.getId(), step));
+                modificator.setSdkAdditionalData(new PdiSdkAdditionalData(steps, classLoader));
+                modificator.commitChanges();
+
+                return true;
             }
         });
-        URLClassLoader classLoader = PdiSdkAdditionalData.createClassLoader(urls);
-        InputStream kettleStepsXml = classLoader.getResourceAsStream("kettle-steps.xml");
-        KettleIcons.loadStepsXml(kettleStepsXml)
-                .forEach(step -> steps.put(step.getId(), step));
-        modificator.setSdkAdditionalData(new PdiSdkAdditionalData(steps, classLoader));
-        modificator.commitChanges();
-        return true;
+        return result;
     }
 
     private Stream<Path> getPluginsJars(Path kettleHome) {
@@ -104,12 +113,12 @@ public class PdiSdkType extends SdkType {
         }
     }
 
-    private Optional<Step> createStep(Annotation annotation) {
+    private Optional<Step> createStep(Annotation annotation, String className) {
         Set<String> memberNames = annotation.getMemberNames();
         if (memberNames != null && memberNames.contains("id") && memberNames.contains("image")) {
             var id = ((StringMemberValue) annotation.getMemberValue("id")).getValue();
             var image = ((StringMemberValue) annotation.getMemberValue("image")).getValue();
-            return Optional.of(new Step(id, image));
+            return Optional.of(new Step(id, image, className));
         }
         return Optional.empty();
     }

@@ -29,9 +29,10 @@ public class KettleIcons {
         NodeList stepsElement = document.getElementsByTagName("step");
         Stream<Step> steps = asList(stepsElement).stream()
                 .flatMap(element -> {
+                    String className = getSubTagText(element, "classname");
                     String iconPath = getIconPath(element);
                     String[] ids = element.getAttribute("id").split(",");
-                    return Stream.of(ids).map(id -> new Step(id, iconPath));
+                    return Stream.of(ids).map(id -> new Step(id, iconPath, className));
                 });
         return steps;
     }
@@ -46,7 +47,11 @@ public class KettleIcons {
     }
 
     private static String getIconPath(Element element) {
-        return element.getElementsByTagName("iconfile").item(0).getTextContent();
+        return getSubTagText(element, "iconfile");
+    }
+
+    private static String getSubTagText(Element element, String subTagName) {
+        return element.getElementsByTagName(subTagName).item(0).getTextContent();
     }
 
     private static Document parseXmlResource(InputStream stream) {

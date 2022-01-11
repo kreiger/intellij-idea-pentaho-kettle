@@ -4,7 +4,10 @@ import com.intellij.openapi.projectRoots.Sdk;
 import com.intellij.openapi.projectRoots.SdkAdditionalData;
 import com.intellij.openapi.roots.OrderRootType;
 import com.intellij.openapi.vfs.VfsUtilCore;
+import com.intellij.ui.scale.ScaleContext;
 import com.intellij.util.ImageLoader;
+import com.intellij.util.ui.ImageUtil;
+import com.intellij.util.ui.StartupUiUtil;
 import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
 
@@ -14,6 +17,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -51,21 +55,29 @@ public class PdiSdkAdditionalData implements SdkAdditionalData {
     }
 
     public Optional<Image> getImage(String id) {
-        return Optional.ofNullable(steps.get(id))
+        return getImageResource(id)
+                .map(ImageLoader::loadFromUrl);
+    }
+
+    @NotNull private Optional<URL> getImageResource(String id) {
+        return getStep(id)
                 .map(Step::getImage)
-                .map(classLoader::getResource)
-                .map(ImageLoader::loadFromUrl)
-                .map(image -> ImageLoader.scaleImage(image, 2d));
+                .map(classLoader::getResource);
+    }
+
+    @NotNull public Optional<Step> getStep(String id) {
+        return Optional.ofNullable(steps.get(id));
     }
 
     public void save(Element rootElement) {
         Element steps = new Element("steps");
         rootElement.addContent(steps);
         this.steps.forEach((id, step) -> {
-            Element image = new Element("step");
-            image.setAttribute("id", step.getId());
-            image.setAttribute("image", step.getImage());
-            steps.addContent(image);
+            Element stepElement = new Element("step");
+            stepElement.setAttribute("id", step.getId());
+            stepElement.setAttribute("image", step.getImage());
+            stepElement.setAttribute("classname", step.getClassName());
+            steps.addContent(stepElement);
         });
     }
 

@@ -7,14 +7,16 @@ import static java.util.Objects.requireNonNull;
 public class Step {
     private final String id;
     private final String image;
+    private final String className;
 
-    public Step(String id, String image) {
+    public Step(String id, String image, String className) {
         this.id = requireNonNull(id);
         this.image = requireNonNull(image);
+        this.className = className;
     }
 
     public Step(Element element) {
-        this(element.getAttributeValue("id"), element.getAttributeValue("image"));
+        this(element.getAttributeValue("id"), element.getAttributeValue("image"), element.getAttributeValue("classname"));
     }
 
     public String getId() {
@@ -23,5 +25,9 @@ public class Step {
 
     public String getImage() {
         return image;
+    }
+
+    public String getClassName() {
+        return className;
     }
 }

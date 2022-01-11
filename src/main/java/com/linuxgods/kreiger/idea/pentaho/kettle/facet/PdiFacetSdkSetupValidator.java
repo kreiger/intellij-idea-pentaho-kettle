@@ -3,13 +3,8 @@ package com.linuxgods.kreiger.idea.pentaho.kettle.facet;
 import com.intellij.codeInsight.daemon.ProjectSdkSetupValidator;
 import com.intellij.facet.FacetManager;
 import com.intellij.facet.impl.FacetUtil;
-import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.WriteAction;
-import com.intellij.openapi.editor.ex.util.EditorUtil;
-import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
-import com.intellij.openapi.fileEditor.FileEditorProvider;
-import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleUtilCore;
 import com.intellij.openapi.project.Project;
@@ -22,7 +17,6 @@ import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.TransformationFi
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Arrays;
 import java.util.stream.Stream;
 
 public class PdiFacetSdkSetupValidator implements ProjectSdkSetupValidator {
@@ -41,6 +35,7 @@ public class PdiFacetSdkSetupValidator implements ProjectSdkSetupValidator {
         return SdkPopupFactory.newBuilder()
                 .withProject(project)
                 .withSdkTypeFilter(type -> type instanceof PdiSdkType)
+                .registerNewSdk()
                 .onSdkSelected(sdk -> {
                     WriteAction.run(() -> {
                         Module module = ModuleUtilCore.findModuleForFile(file, project);

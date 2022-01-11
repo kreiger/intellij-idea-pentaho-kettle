@@ -9,13 +9,15 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.Presentation;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.projectRoots.Sdk;
+import com.intellij.openapi.projectRoots.*;
 import com.intellij.openapi.roots.ProjectFileIndex;
+import com.intellij.openapi.util.SystemInfo;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacetConfiguration;
 import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacetType;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.TransformationFileType;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 
@@ -30,10 +32,16 @@ public class OpenInSpoonAction extends AnAction {
         Presentation presentation = e.getPresentation();
         presentation.setVisible(transformation);
 
+
         Optional<VirtualFile> spoon = getSpoon(e.getProject(), file);
         if (spoon.isEmpty()) {
             presentation.setEnabled(false);
             presentation.setDescription("There is no spoon");
+        }
+        Optional<String> jdk8Home = getJdkHomeByVersion(JavaSdkVersion.JDK_1_8);
+        if (jdk8Home.isEmpty()) {
+            presentation.setEnabled(false);
+            presentation.setDescription("JDK 8 is not present.");
         }
     }
 
@@ -46,7 +54,7 @@ public class OpenInSpoonAction extends AnAction {
                 .map(Facet::getConfiguration)
                 .map(PdiFacetConfiguration::getSdk)
                 .map(Sdk::getHomeDirectory)
-                .map(sdkDirectory -> sdkDirectory.findChild("spoon.sh"));
+                .map(sdkDirectory -> sdkDirectory.findChild(SystemInfo.isWindows ? "Spoon.bat" : "spoon.sh"));
     }
 
     @Override public void actionPerformed(@NotNull AnActionEvent e) {
@@ -54,11 +62,26 @@ public class OpenInSpoonAction extends AnAction {
         if (file == null) return;
         getSpoon(e.getProject(), file).ifPresent(spoon -> {
             try {
-                new GeneralCommandLine(spoon.getCanonicalPath(), "-file", file.getCanonicalPath())
-                        .createProcess();
+                var commandLine = new GeneralCommandLine(spoon.getCanonicalPath(), "-file", file.getCanonicalPath());
+                Optional<String> jdk8Home = getJdkHomeByVersion(JavaSdkVersion.JDK_1_8);
+                jdk8Home.ifPresent(homePath -> {
+                    System.out.println("Setting JAVA_HOME to "+homePath);
+                    commandLine.withEnvironment("JAVA_HOME", homePath);
+                });
+                commandLine.createProcess();
             } catch (ExecutionException executionException) {
                 throw new RuntimeException(executionException);
             }
         });
+    }
+
+    @NotNull private Optional<String> getJdkHomeByVersion(JavaSdkVersion jdkVersion) {
+        JavaSdk jdkType = JavaSdk.getInstance();
+        return ProjectJdkTable.getInstance().getSdksOfType(jdkType).stream()
+                .filter((Sdk jdk) -> jdkVersion.equals(jdkType.getVersion(jdk)))
+                .filter(jdk -> jdk.getHomePath() != null)
+                .filter(jdk -> jdkType.isValidSdkHome(jdk.getHomePath()))
+                .findFirst()
+                .map(Sdk::getHomePath);
     }
 }

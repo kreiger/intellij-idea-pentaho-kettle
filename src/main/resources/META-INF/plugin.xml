@@ -1,8 +1,8 @@
 <idea-plugin>
     <id>com.linuxgods.kreiger.idea.pentaho.kettle</id>
-    <name>Pentaho Kettle plugin</name>
+    <name>Pentaho Data Integration (Kettle)</name>
     <version>1.0</version>
-    <vendor email="support@yourcompany.com" url="http://www.yourcompany.com">YourCompany</vendor>
+    <vendor email="christoffer.hammarstrom@gmail.com">Christoffer Hammarström</vendor>
 
     <description><![CDATA[
       Enter short description for your plugin here.<br>
@@ -28,6 +28,7 @@
     <depends>com.intellij.modules.sql</depends>
     <depends>com.intellij.database</depends>
     <depends>com.intellij.javaee</depends>
+    <depends>com.intellij.diagram</depends>
     <!-- depends>org.intellij.plugins.markdown</depends -->
 
     <applicationListeners>
@@ -36,6 +37,11 @@
     </applicationListeners>
 
     <extensions defaultExtensionNs="com.intellij">
+        <codeInsight.lineMarkerProvider language="PentahoKettleTransformation"
+                                        implementationClass="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step$StepLineMarkerProvider" />
+        <iconProvider implementation="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step$StepIconProvider" />
+        <presentationProvider forClass="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step"
+                              implementationClass="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step$StepPresentationProvider"/>
         <fileType name="KTR"
                   extensions="ktr"
                   language="PentahoKettleTransformation"
@@ -59,24 +65,32 @@
         <framework.detector implementation="com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFrameworkDetector"/>
         <frameworkSupport
                 implementation="com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacetBasedFrameworkSupportProvider"/>
-        <projectSdkSetupValidator implementation="com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacetSdkSetupValidator" />
+        <projectSdkSetupValidator
+                implementation="com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacetSdkSetupValidator"/>
     </extensions>
 
     <actions>
         <group id="PentahoKettleTransformationPopupGroup"/>
-        <action id="com.linuxgods.kreiger.idea.pentaho.kettle.spoon.OpenInSpoonAction"
+        <action id="OpenInSpoonAction"
                 class="com.linuxgods.kreiger.idea.pentaho.kettle.spoon.OpenInSpoonAction"
                 icon="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.KettleIcons.KETTLE_ICON"
                 text="Spoon">
-            <add-to-group group-id="RevealGroup"  anchor="first" />
-            <add-to-group group-id="PentahoKettleTransformationPopupGroup" anchor="first" />
-            <override-text place="PentahoGraph" text="Open in Spoon" />
+            <add-to-group group-id="RevealGroup" anchor="first"/>
+            <add-to-group group-id="PentahoKettleTransformationPopupGroup" anchor="first"/>
+            <override-text place="PentahoGraph" text="Open in Spoon"/>
         </action>
+
+        <action id="GraphZoomLabel"
+                class="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.GraphZoomLabel"/>
         <group id="PentahoKettleTransformationGraphToolbar">
+            <reference ref="OpenInSpoonAction"/>
+            <reference ref="GraphZoomLabel"/>
+            <!--
             <reference ref="Graph.ZoomIn"/>
             <reference ref="Graph.ZoomOut"/>
             <reference ref="Graph.ActualSize"/>
             <reference ref="Graph.FitContent"/>
+            -->
         </group>
     </actions>
 

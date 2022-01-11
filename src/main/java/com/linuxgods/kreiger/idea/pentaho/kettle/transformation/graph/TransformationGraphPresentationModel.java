@@ -1,7 +1,6 @@
 package com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph;
 
 import com.intellij.diagram.DiagramColors;
-import com.intellij.facet.Facet;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.diagnostic.Logger;
@@ -12,12 +11,9 @@ import com.intellij.openapi.graph.builder.GraphPresentationModel;
 import com.intellij.openapi.graph.layout.Layouter;
 import com.intellij.openapi.graph.settings.GraphSettings;
 import com.intellij.openapi.graph.view.*;
-import com.intellij.util.ImageLoader;
 import com.intellij.util.MathUtil;
-import com.intellij.util.ui.ImageUtil;
+import com.linuxgods.kreiger.idea.pentaho.kettle.ImageUtil;
 import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacet;
-import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacetConfiguration;
-import com.linuxgods.kreiger.idea.pentaho.kettle.sdk.PdiSdkAdditionalData;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -27,20 +23,15 @@ import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.awt.geom.Point2D;
-import java.awt.image.BufferedImage;
-import java.util.Optional;
 
-import static java.awt.image.BufferedImage.TYPE_INT_RGB;
 import static javax.swing.SwingUtilities.isLeftMouseButton;
 
 public class TransformationGraphPresentationModel extends GraphPresentationModel<Node, Edge> {
     private static final Logger LOGGER = Logger.getInstance(TransformationGraphPresentationModel.class);
     public static final String PENTAHO_GRAPH = "PentahoGraph";
-    public static final Color SPOON_STEP_BORDER_COLOR = new Color(0x3a, 0x64, 0x81);
-    public static final Image MISSING_ENTRY = loadMissingEntry();
     public static final Color EDGE_COLOR = DiagramColors.DEFAULT_EDGE.getDefaultColor();
     public final GraphSettings graphSettings;
-    private final PdiFacet facet;
+    final PdiFacet facet;
     private final GraphManager graphManager;
 
     public TransformationGraphPresentationModel(GraphManager graphManager, GraphSettings graphSettings, PdiFacet facet) {
@@ -49,42 +40,13 @@ public class TransformationGraphPresentationModel extends GraphPresentationModel
         this.facet = facet;
     }
 
-    private static Image loadMissingEntry() {
-        Image image = ImageLoader.loadFromUrl(TransformationGraphPresentationModel.class.getResource("/ui/images/missing_entry.svg"));
-        return drawOnBackground(Color.RED, 0.2f, image);
-    }
-
-    @NotNull private static BufferedImage drawOnBackground(Color color, float alpha, Image image) {
-        BufferedImage background = ImageUtil.createImage(image.getWidth(null), image.getHeight(null), TYPE_INT_RGB);
-        Graphics2D g2 = background.createGraphics();
-        g2.setColor(color);
-        Composite composite = g2.getComposite();
-        g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
-        g2.fillRect(0, 0, background.getWidth(), background.getHeight());
-        g2.setColor(SPOON_STEP_BORDER_COLOR);
-        g2.drawRoundRect(0, 0, background.getWidth() - 1, background.getHeight() - 1, 4, 4);
-        g2.setComposite(composite);
-        g2.drawImage(image, 0, 0, null);
-        g2.dispose();
-        return background;
-    }
-
-    Optional<Image> getImage(String id) {
-        return Optional.of(facet)
-                .map(Facet::getConfiguration)
-                .map(PdiFacetConfiguration::getSdk)
-                .map(sdk -> (PdiSdkAdditionalData) sdk.getSdkAdditionalData())
-                .flatMap(sdkAdditionalData -> sdkAdditionalData.getImage(id))
-                .map(image -> drawOnBackground(Color.LIGHT_GRAY, 1, image));
-    }
-
     @Override public @NotNull NodeRealizer getNodeRealizer(@Nullable Node node) {
         NodeRealizer realizer;
         try {
             realizer = node.getRealizer(this);
         } catch (Exception e) {
             ImageNodeRealizer imageNodeRealizer = graphManager.createImageNodeRealizer();
-            imageNodeRealizer.setImage(MISSING_ENTRY);
+            imageNodeRealizer.setImage(ImageUtil.MISSING_ENTRY_IMAGE);
             realizer = imageNodeRealizer;
             try {
                 realizer.setWidth(node.getWidth());

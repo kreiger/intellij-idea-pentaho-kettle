@@ -15,6 +15,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static org.apache.commons.lang3.StringUtils.*;
 
@@ -162,8 +163,11 @@ public class TransformationFoldingBuilder extends FoldingBuilderEx implements Du
     @Override public boolean isCollapsedByDefault(@NotNull ASTNode node) {
         if (node instanceof XmlText) return true;
         XmlTag xmlTag = (XmlTag) node;
-        int length = xmlTag.getSubTags().length;
-        return length != 1;
+        int subTagCount = xmlTag.getSubTags().length;
+        if (Set.of("order","notepads").contains(xmlTag.getLocalName())) {
+            return subTagCount == 0;
+        }
+        return subTagCount != 1;
     }
 
     private XmlText getSubTagXmlText(XmlTag xmlTag, String qname) {

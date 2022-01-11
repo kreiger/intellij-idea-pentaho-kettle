@@ -13,7 +13,7 @@ import org.jetbrains.annotations.NotNull;
 import java.awt.*;
 
 import static com.intellij.openapi.graph.layout.DiscreteNodeLabelModel.SOUTH;
-import static com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.TransformationGraphPresentationModel.MISSING_ENTRY;
+import static com.linuxgods.kreiger.idea.pentaho.kettle.ImageUtil.MISSING_ENTRY_IMAGE;
 
 public class StepNode implements Node {
     private final Step step;
@@ -27,7 +27,7 @@ public class StepNode implements Node {
     }
 
     @Override public NodeRealizer getRealizer(TransformationGraphPresentationModel presentationModel) {
-        String type = step.getType().getValue();
+        String type = getType();
         String name = step.getName();
         GraphManager graphManager = presentationModel.getGraphManager();
         ImageNodeRealizer realizer = graphManager.createImageNodeRealizer();
@@ -40,11 +40,15 @@ public class StepNode implements Node {
         realizer.setLabel(nodeLabel);
         realizer.addLabel(createNodeLabel(type, DiscreteNodeLabelModel.NORTH, realizer, graphManager));
         realizer.setTransparent(false);
-        presentationModel.getImage(type)
+        presentationModel.facet.getImage(type)
                 .ifPresentOrElse(realizer::setImage,
-                        () -> realizer.setImage(MISSING_ENTRY));
+                        () -> realizer.setImage(MISSING_ENTRY_IMAGE));
 
         return realizer;
+    }
+
+    private String getType() {
+        return step.getType().getStringValue();
     }
 
     @Override public int getHeight() {
@@ -64,7 +68,7 @@ public class StepNode implements Node {
     }
 
     @Override public String getTooltip() {
-        return step.getType().getValue();
+        return getType();
     }
 
     @Override public DefaultActionGroup getActionGroup() {
