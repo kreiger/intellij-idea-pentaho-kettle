@@ -128,7 +128,6 @@ public interface Step extends DomElement {
             if (!STEP_TYPE_PATTERN.accepts(element)) return null;
             XmlText xmlText = (XmlText) element.getParent();
             String type = xmlText.getValue();
-            System.out.println("Type: " + type);
             return PdiFacet.getInstance(element)
                     .flatMap(pdiFacet -> pdiFacet.getIcon(type)
                             .map(icon -> getPsiElementLineMarkerInfo(element, type, pdiFacet, icon)))
@@ -164,7 +163,6 @@ public interface Step extends DomElement {
             return new PsiPolyVariantReferenceBase[]{new PsiPolyVariantReferenceBase<>(element, element.getTextRange(), true) {
                 @Override public ResolveResult @NotNull [] multiResolve(boolean incompleteCode) {
                     String type = value.getStringValue();
-                    System.out.println("multiResolve: " + value + " " + type);
                     return PdiFacet.getInstance(element).stream()
                             .flatMap(pdiFacet -> pdiFacet.findStepMetaClasses(type, element.getResolveScope()))
                             .map(PsiElementResolveResult::new)
@@ -185,7 +183,6 @@ public interface Step extends DomElement {
         public InlayHintsCollector getCollectorFor(@NotNull PsiFile psiFile, @NotNull Editor editor, @NotNull NoSettings noSettings, @NotNull InlayHintsSink inlayHintsSink) {
             Transformation transformation = Transformation.getTransformation(psiFile.getProject(), psiFile.getVirtualFile());
             DomManager domManager = DomManager.getDomManager(psiFile.getProject());
-            System.out.println("getCollectorFor "+psiFile);
             return new FactoryInlayHintsCollector(editor) {
                 @Override
                 public boolean collect(@NotNull PsiElement psiElement, @NotNull Editor editor1, @NotNull InlayHintsSink sink) {
@@ -202,8 +199,6 @@ public interface Step extends DomElement {
                         return true;
                     }
                     Step step = (Step) parent;
-
-                    System.out.println("Step:" + step.getNameUntrimmed());
                     for (Hop hop : transformation.getOrder().getHops()) {
                         Step from = hop.getFrom().getValue();
                         Step to = hop.getTo().getValue();

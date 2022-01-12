@@ -8,13 +8,14 @@ import com.intellij.openapi.editor.FoldingGroup;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.TextRange;
-import com.intellij.patterns.XmlTagPattern;
+import com.intellij.patterns.*;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.XmlRecursiveElementVisitor;
 import com.intellij.psi.xml.XmlTag;
 import com.intellij.psi.xml.XmlText;
 import com.intellij.psi.xml.XmlToken;
 import com.intellij.psi.xml.XmlTokenType;
+import com.intellij.util.ProcessingContext;
 import com.intellij.xml.util.XmlUtil;
 import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacet;
 import one.util.streamex.StreamEx;
@@ -24,7 +25,9 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
+import static com.intellij.patterns.StandardPatterns.collection;
 import static com.intellij.patterns.XmlPatterns.xmlTag;
 import static java.util.Collections.emptySet;
 import static java.util.Map.entry;
@@ -49,7 +52,12 @@ public class TransformationFoldingBuilder extends FoldingBuilderEx implements Du
             xmlTag().withLocalName("hop")
             .withParent(xmlTag().withLocalName("order")
                     .withParent(TRANSFORMATION_PATTERN));
-    private static final Map<String, String> INFO_DEFAULT_VALUES = Map.ofEntries(entry("trans_type", "Normal"),
+    private static final XmlTagPattern.@NotNull Capture NOTEPAD_PATTERN =
+            xmlTag().withLocalName("notepad")
+            .withParent(xmlTag().withLocalName("notepads")
+                    .withParent(TRANSFORMATION_PATTERN));
+    private static final Map<String, String> INFO_DEFAULT_VALUES = Map.ofEntries(
+            entry("trans_type", "Normal"),
             entry("trans_status", "0"),
             entry("size_rowset", "10000"),
             entry("sleep_time_empty", "50"),
@@ -100,7 +108,7 @@ public class TransformationFoldingBuilder extends FoldingBuilderEx implements Du
                 if (xmlTag.getParentTag() == null) {
                     foldSubTags(xmlTag, subTag -> getTransformationSubTagDefault(subTag)
                             .map(subTagDefault -> subTagDefault ? TRANS_META_DEFAULT_GROUP : TRANS_META_GROUP)
-                            .map(group -> Map.entry(group, group.toString()))
+                            .map(group -> entry(group, group.toString()))
                             .orElse(null));
                     super.visitXmlTag(xmlTag);
                     return;
@@ -108,6 +116,12 @@ public class TransformationFoldingBuilder extends FoldingBuilderEx implements Du
 
                 if (INFO_PATTERN.accepts(xmlTag)) {
                     visitInfoTag(xmlTag);
+                    super.visitXmlTag(xmlTag);
+                    return;
+                } else if (NOTEPAD_PATTERN.accepts(xmlTag)) {
+                    FoldingGroup noteGroup = FoldingGroup.newGroup(xmlTag.getLocalName());
+                    foldSubTags(xmlTag,
+                            tag -> "note".equals(tag.getLocalName()) ? null : Map.entry(noteGroup, "..."));
                     super.visitXmlTag(xmlTag);
                     return;
                 } else if (STEP_PATTERN.accepts(xmlTag)) {
@@ -201,8 +215,67 @@ public class TransformationFoldingBuilder extends FoldingBuilderEx implements Du
                     case "slaveservers":
                     case "clusterschemas":
                         return isBlank(tag);
+                    case "log":
+                        return Stream.of(tag.getSubTags())
+                                .flatMap(t -> Stream.of("connection", "schema", "table").map(t::findFirstSubTag))
+                                .filter(Objects::nonNull)
+                                .allMatch(XmlTag::isEmpty);
+                    case "maxdate":
+                        return xmlTag("maxdate").withSubTags(xmlTags(
+                                xmlTag("connection").with(empty()),
+                                xmlTag("table").with(empty()),
+                                xmlTag("field").with(empty()),
+                                xmlTag("offset").with(xmlValueText("0.0")),
+                                xmlTag("maxdiff").with(xmlValueText("0.0")))).accepts(tag);
+    /*<maxdate>
+      <connection/>
+      <table/>
+      <field/>
+      <offset>0.0</offset>
+      <maxdiff>0.0</maxdiff>
+    </maxdate>*/
                 }
                 return true;
+            }
+
+            @NotNull private PatternCondition<XmlTag> xmlValueText(String text) {
+                return new PatternCondition<XmlTag>("xmlValueText") {
+                    @Override
+                    public boolean accepts(@NotNull XmlTag xmlTag, ProcessingContext context) {
+                        return text.equals(xmlTag.getValue().getText());
+                    }
+                };
+            }
+
+            @NotNull private PatternCondition<XmlTag> empty() {
+                return new PatternCondition<>("empty") {
+                    @Override
+                    public boolean accepts(@NotNull XmlTag xmlTag, ProcessingContext context) {
+                        return xmlTag.isEmpty();
+                    }
+                };
+            }
+
+            private XmlTagPattern.Capture xmlTag(String localName) {
+                return XmlPatterns.xmlTag().withLocalName(localName);
+            }
+
+            @SafeVarargs @NotNull private CollectionPattern<XmlTag> xmlTags(ElementPattern<XmlTag>... xmlTagsPatterns) {
+                return StandardPatterns.<XmlTag>collection().with(contents(xmlTagsPatterns));
+            }
+
+            @SafeVarargs @NotNull private <T> PatternCondition<Collection<T>> contents(ElementPattern<T>... elementPatterns) {
+                return new PatternCondition<>("elements") {
+                    @Override public boolean accepts(@NotNull Collection<T> ts, ProcessingContext context) {
+                        Iterator<T> iterator = ts.iterator();
+                        for (ElementPattern<T> elementPattern : elementPatterns) {
+                            if (!iterator.hasNext() || !elementPattern.accepts(iterator.next())) {
+                                return false;
+                            }
+                        }
+                        return !iterator.hasNext();
+                    }
+                };
             }
 
             private void visitHop(XmlTag xmlTag) {
