@@ -11,16 +11,23 @@ import com.intellij.openapi.util.TextRange;
 import com.intellij.patterns.XmlTagPattern;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.XmlRecursiveElementVisitor;
-import com.intellij.psi.xml.*;
-import com.intellij.util.text.TextRangeUtil;
+import com.intellij.psi.xml.XmlTag;
+import com.intellij.psi.xml.XmlText;
+import com.intellij.psi.xml.XmlToken;
+import com.intellij.psi.xml.XmlTokenType;
 import com.intellij.xml.util.XmlUtil;
+import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacet;
+import one.util.streamex.StreamEx;
+import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.function.Function;
 
 import static com.intellij.patterns.XmlPatterns.xmlTag;
-import static java.util.Collections.*;
+import static java.util.Collections.emptySet;
+import static java.util.Map.entry;
 import static java.util.Objects.requireNonNullElse;
 import static org.apache.commons.lang3.StringUtils.*;
 
@@ -32,10 +39,33 @@ public class TransformationFoldingBuilder extends FoldingBuilderEx implements Du
     private static final XmlTagPattern.@NotNull Capture STEP_PATTERN =
             xmlTag().withLocalName("step")
             .withParent(TRANSFORMATION_PATTERN);
+    private static final XmlTagPattern.@NotNull Capture CONNECTION_PATTERN =
+            xmlTag().withLocalName("connection")
+            .withParent(TRANSFORMATION_PATTERN);
+    private static final XmlTagPattern.@NotNull Capture INFO_PATTERN =
+            xmlTag().withLocalName("info")
+            .withParent(TRANSFORMATION_PATTERN);
     private static final XmlTagPattern.@NotNull Capture HOP_PATTERN =
             xmlTag().withLocalName("hop")
             .withParent(xmlTag().withLocalName("order")
                     .withParent(TRANSFORMATION_PATTERN));
+    private static final Map<String, String> INFO_DEFAULT_VALUES = Map.ofEntries(entry("trans_type", "Normal"),
+            entry("trans_status", "0"),
+            entry("size_rowset", "10000"),
+            entry("sleep_time_empty", "50"),
+            entry("sleep_time_full", "50"),
+            entry("unique_connections", "N"),
+            entry("feedback_shown", "Y"),
+            entry("feedback_size", "50000"),
+            entry("using_thread_priorities", "Y"),
+            entry("capture_step_performance", "N"),
+            entry("step_performance_capturing_delay", "1000"),
+            entry("step_performance_capturing_size_limit", "100"),
+            entry("created_user", "-"),
+            entry("modified_user", "-"),
+            entry("key_for_session_key", "H4sIAAAAAAAAAAMAAAAAAAAAAAA="),
+            entry("is_key_private", "N"));
+
 
     @Override
     public FoldingDescriptor @NotNull [] buildFoldRegions(@NotNull PsiElement root, @NotNull Document document, boolean quick) {
@@ -43,8 +73,11 @@ public class TransformationFoldingBuilder extends FoldingBuilderEx implements Du
             return FoldingDescriptor.EMPTY;
         }
         List<FoldingDescriptor> foldingDescriptors = new ArrayList<>();
+        Optional<PdiFacet> pdiFacet = PdiFacet.getInstance(root);
         new XmlRecursiveElementVisitor() {
-            public final FoldingGroup CHAR_ENTITY_REF_GROUP = FoldingGroup.newGroup("charEntityRef");
+            private final FoldingGroup TRANS_META_GROUP = FoldingGroup.newGroup("...TransMeta...");
+            private final FoldingGroup TRANS_META_DEFAULT_GROUP = FoldingGroup.newGroup("...TransMeta default...");
+            private final FoldingGroup CHAR_ENTITY_REF_GROUP = FoldingGroup.newGroup("charEntityRef");
 
             @Override public void visitXmlToken(XmlToken token) {
                 if (token.getTokenType() == XmlTokenType.XML_CHAR_ENTITY_REF) {
@@ -65,49 +98,111 @@ public class TransformationFoldingBuilder extends FoldingBuilderEx implements Du
 
             @Override public void visitXmlTag(XmlTag xmlTag) {
                 if (xmlTag.getParentTag() == null) {
+                    foldSubTags(xmlTag, subTag -> getTransformationSubTagDefault(subTag)
+                            .map(subTagDefault -> subTagDefault ? TRANS_META_DEFAULT_GROUP : TRANS_META_GROUP)
+                            .map(group -> Map.entry(group, group.toString()))
+                            .orElse(null));
                     super.visitXmlTag(xmlTag);
                     return;
                 }
+
+                if (INFO_PATTERN.accepts(xmlTag)) {
+                    visitInfoTag(xmlTag);
+                    super.visitXmlTag(xmlTag);
+                    return;
+                } else if (STEP_PATTERN.accepts(xmlTag)) {
+                    visitStep(xmlTag);
+                    super.visitXmlTag(xmlTag);
+                    return;
+                } else if (HOP_PATTERN.accepts(xmlTag)) {
+                    visitHop(xmlTag);
+                    super.visitXmlTag(xmlTag);
+                    return;
+                } else
                 super.visitXmlTag(xmlTag);
                 if (!foldable(xmlTag)) {
                     return;
                 }
 
-                if (STEP_PATTERN.accepts(xmlTag)) {
-                    visitStep(xmlTag);
-                    return;
-                }
-                if (HOP_PATTERN.accepts(xmlTag)) {
-                    visitHop(xmlTag);
+                FoldingGroup group = FoldingGroup.newGroup(xmlTag.getName());
+
+                String name = xmlTag.getSubTagText("name");
+                if (name != null) {
+                    foldSubTags(xmlTag, subTag -> {
+                        if ("name".equals(subTag.getLocalName())) {
+                            return null;
+                        }
+                        return entry(group, "...");
+                    });
                     return;
                 }
 
-                XmlTag[] nameTags = xmlTag.findSubTags("name", null);
-                if (nameTags.length == 0) {
-                    nameTags = xmlTag.findSubTags("note", null);
+                foldingDescriptors.add(new FoldingDescriptor(xmlTag, xmlTag.getTextRange()));
+            }
+
+            private Optional<Boolean> getTransformationSubTagDefault(XmlTag subTag) {
+                switch (subTag.getLocalName()) {
+                    case "step_error_handling":
+                    case "slave-step-copy-partition-distribution":
+                        return Optional.of(isBlank(subTag));
+                    case "slave_transformation":
+                        return Optional.of("N".equals(subTag.getValue().getText()));
+                    case "attributes":
+                        return Optional.of(subTag.isEmpty());
                 }
-                if (nameTags.length == 0) {
-                    foldingDescriptors.add(new FoldingDescriptor(xmlTag, xmlTag.getTextRange()));
-                    return;
+                return Optional.empty();
+            }
+
+            private void visitConnectionTag(XmlTag xmlTag) {
+                FoldingGroup group = FoldingGroup.newGroup(xmlTag.getName());
+                foldSubTags(xmlTag, subTag -> {
+                    switch (subTag.getLocalName()) {
+                        case "name":
+                        case "server":
+                        case "type":
+                        case "access":
+                        case "database":
+                        case "port":
+                        case "username":
+                            return null;
+                    }
+                    return entry(group,  "...");
+                });
+            }
+
+            private void visitInfoTag(XmlTag xmlTag) {
+                foldSubTags(xmlTag, subTag -> {
+                    String localName = subTag.getLocalName();
+                    switch (localName) {
+                        case "name":
+                        case "directory":
+                            return null;
+                    }
+                    FoldingGroup group = getInfoTagDefault(subTag)? TRANS_META_DEFAULT_GROUP : TRANS_META_GROUP;
+                    return entry(group, group.toString());
+                });
+            }
+
+            private boolean getInfoTagDefault(XmlTag tag) {
+                String localName = tag.getLocalName();
+                String defaultValue = INFO_DEFAULT_VALUES.get(localName);
+                if (null != defaultValue) {
+                    return defaultValue.equals(tag.getValue().getTrimmedText());
                 }
-                XmlTag nameTag = nameTags[0];
-                int nameEnd = nameTag.getTextRange().getEndOffset();
-                XmlTag[] typeTags = xmlTag.findSubTags("type", null);
-                XmlTag typeTag = typeTags.length == 0 ? nameTag : typeTags[0];
-                int typeEnd = typeTag.getTextRange().getEndOffset();
-                XmlTagChild nextSiblingInTag = (typeEnd > nameEnd ? typeTag : nameTag).getNextSiblingInTag();
-                XmlTag[] subTags = xmlTag.getSubTags();
-                XmlTag lastTag = subTags[subTags.length - 1];
-                int endOffset = lastTag.getTextRange().getEndOffset();
-                if (null == nextSiblingInTag) {
-                    return;
+                switch (localName) {
+                    case "description":
+                    case "extended_description":
+                    case "trans_version":
+                    case "shared_objects_file":
+                        return tag.isEmpty();
+                    case "parameters":
+                    case "dependencies":
+                    case "partitionschemas":
+                    case "slaveservers":
+                    case "clusterschemas":
+                        return isBlank(tag);
                 }
-                int startOffset = nextSiblingInTag.getTextRange().getEndOffset();
-                if (endOffset <= startOffset) {
-                    return;
-                }
-                TextRange textRange = new TextRange(startOffset, endOffset);
-                foldingDescriptors.add(new FoldingDescriptor(xmlTag, textRange));
+                return true;
             }
 
             private void visitHop(XmlTag xmlTag) {
@@ -119,46 +214,62 @@ public class TransformationFoldingBuilder extends FoldingBuilderEx implements Du
 
             private void visitStep(XmlTag xmlTag) {
                 String type = requireNonNullElse(xmlTag.getSubTagText("type"), "?");
+                String typeClass = pdiFacet.flatMap(facet -> facet.getClassName(type))
+                        .map(className -> StringUtils.substringAfterLast(className, "."))
+                        .orElse(type);
+                foldSubTags(xmlTag, new Function<>() {
+                    final Set<String> excludedTagNames = Set.of("name", "type");
+                    final FoldingGroup stepMetaDefaultsGroup = FoldingGroup.newGroup("...StepMeta default...");
+                    final FoldingGroup stepMetaGroup = FoldingGroup.newGroup("...StepMeta...");
+                    final FoldingGroup typeMetaGroup = FoldingGroup.newGroup("..." + typeClass + "...");
 
-                Set<String> excludedTagNames = Set.of("name", "type");
-                FoldingGroup stepMetaGroup = FoldingGroup.newGroup("...default StepMeta...");
-                FoldingGroup typeMetaGroup = FoldingGroup.newGroup("..."+type+"...");
-                FoldingGroup previous = null;
-                List<TextRange> currentTextRanges = new ArrayList<>();
-                for (XmlTag tag : xmlTag.getSubTags()) {
-                    String tagName = tag.getLocalName();
-                    FoldingGroup current;
-                    if (excludedTagNames.contains(tagName)) {
-                        current = null;
-                    } else {
-                        Optional<Boolean> stepMetaTagDefault = getStepMetaTagDefault(tag);
-                        if (stepMetaTagDefault.isPresent()) {
-                            current = stepMetaTagDefault.get() ? stepMetaGroup : null;
-                        } else {
-                            current = typeMetaGroup;
+                    @Override
+                    public Map.Entry<FoldingGroup, String> apply(XmlTag tag) {
+                        String tagName = tag.getLocalName();
+                        if (excludedTagNames.contains(tagName)) {
+                            return null;
                         }
+                        FoldingGroup foldingGroup = getStepMetaTagDefault(tag)
+                                .map(stepMetaTagDefault -> stepMetaTagDefault ? stepMetaDefaultsGroup : stepMetaGroup)
+                                .orElse(typeMetaGroup);
+                        return entry(foldingGroup, foldingGroup.toString());
+
                     }
-                    if (current != previous) {
-                        add(xmlTag, currentTextRanges, previous, foldingDescriptors);
-                    }
-                    if (current != null) {
-                        currentTextRanges.add(tag.getTextRange());
-                    }
-                    previous = current;
-                }
-                add(xmlTag, currentTextRanges, previous, foldingDescriptors);
-                return;
+                });
             }
+
+            private void foldSubTags(XmlTag xmlTag, Function<XmlTag, Map.Entry<FoldingGroup, String>> f) {
+                StreamEx.of(xmlTag.getSubTags())
+                        .map(subTag -> Optional.ofNullable(f.apply(subTag))
+                                .map(fold -> createFoldingDescriptor(subTag, subTag.getTextRange(), fold.getKey(), fold.getValue()))
+                                .orElse(null))
+                        .groupRuns((fd1, fd2) -> fd1 != null && fd2 != null && fd1.getGroup() == fd2.getGroup() && Objects.equals(fd1.getPlaceholderText(), fd2.getPlaceholderText()))
+                        .filter(fd -> null != fd.get(0))
+                        .map(fds -> mergeFoldingDescriptors(xmlTag, fds))
+                        .forEach(foldingDescriptors::add);
+            }
+
+            @NotNull
+            private FoldingDescriptor mergeFoldingDescriptors(XmlTag xmlTag, List<FoldingDescriptor> fds) {
+                FoldingDescriptor first = fds.get(0);
+                FoldingGroup group = first.getGroup();
+                int startOffset = first.getRange().getStartOffset();
+                int endOffset = fds.get(fds.size() - 1).getRange().getEndOffset();
+                String placeholderText = first.getPlaceholderText();
+                if (null == placeholderText && null != group) {
+                    placeholderText = group.toString();
+                }
+                TextRange range = new TextRange(startOffset, endOffset);
+                return createFoldingDescriptor(xmlTag, range, group, placeholderText);
+            }
+
+            @NotNull
+            private FoldingDescriptor createFoldingDescriptor(XmlTag xmlTag, TextRange range, FoldingGroup group, String placeholderText) {
+                return new FoldingDescriptor(xmlTag.getNode(), range, group, emptySet(), false, placeholderText, true);
+            }
+
         }.visitElement(root);
         return foldingDescriptors.toArray(FoldingDescriptor[]::new);
-    }
-
-    private void add(XmlTag xmlTag, List<TextRange> currentTextRanges, FoldingGroup group, List<FoldingDescriptor> foldingDescriptors) {
-        if (!currentTextRanges.isEmpty()) {
-            TextRange textRange = TextRangeUtil.getEnclosingTextRange(currentTextRanges);
-            foldingDescriptors.add(new FoldingDescriptor(xmlTag.getNode(), textRange, group, group.toString()));
-            currentTextRanges.clear();
-        }
     }
 
     private Optional<Boolean> getStepMetaTagDefault(XmlTag tag) {
@@ -186,7 +297,7 @@ public class TransformationFoldingBuilder extends FoldingBuilderEx implements Du
 
     private boolean foldable(XmlTag xmlTag) {
         if (xmlTag.isEmpty()) return false;
-        return isBlank(xmlTag) || xmlTag.getSubTags().length > 0;
+        return isBlank(xmlTag) || xmlTag.getSubTags().length > 2;
     }
 
     private boolean isBlank(XmlTag xmlTag) {
@@ -234,7 +345,7 @@ public class TransformationFoldingBuilder extends FoldingBuilderEx implements Du
         if (null != from && null != to) {
             String fromValue = leftPad(from.getValue(), longestFromValueLength);
             String toValue = rightPad(to.getValue(), longestToValueLength);
-            return "<hop> " + fromValue + "  ->  " + toValue+ " </hop>";
+            return "<hop> " + fromValue + "  \u2192  " + toValue+ " </hop>";
         }
         return null;
     }

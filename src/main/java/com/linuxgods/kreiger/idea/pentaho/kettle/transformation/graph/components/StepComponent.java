@@ -12,7 +12,7 @@ public class StepComponent extends JLabel {
     private boolean inside;
 
     public StepComponent(Step step, Icon icon) {
-        super(step.getName(), icon, SwingConstants.CENTER);
+        super(step.getNameUntrimmed(), icon, SwingConstants.CENTER);
         this.step = step;
         setVerticalTextPosition(JLabel.BOTTOM);
         setHorizontalTextPosition(JLabel.CENTER);

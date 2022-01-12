@@ -46,9 +46,8 @@ public class PdiFacet extends Facet<PdiFacetConfiguration> {
                 .map(image -> ImageUtil.drawOnBackground(Color.LIGHT_GRAY, 1, image));
     }
 
-    @NotNull private Optional<PdiSdkAdditionalData> getSdkAdditionalData() {
-        return Optional.of(getConfiguration())
-                .map(PdiFacetConfiguration::getSdk)
+    @NotNull public Optional<PdiSdkAdditionalData> getSdkAdditionalData() {
+        return getSdk()
                 .map(sdk -> (PdiSdkAdditionalData) sdk.getSdkAdditionalData());
     }
 
@@ -66,7 +65,7 @@ public class PdiFacet extends Facet<PdiFacetConfiguration> {
                 });
     }
 
-    @NotNull private Optional<String> getClassName(String type) {
+    @NotNull public Optional<String> getClassName(String type) {
         return getSdkAdditionalData()
                 .flatMap(sdkAdditionalData -> sdkAdditionalData.getStep(type))
                 .map(Step::getClassName);

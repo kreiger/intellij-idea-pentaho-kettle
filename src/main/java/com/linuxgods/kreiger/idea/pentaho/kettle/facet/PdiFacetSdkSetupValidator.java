@@ -8,6 +8,7 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleUtilCore;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.projectRoots.Sdk;
 import com.intellij.openapi.roots.ui.configuration.SdkPopupFactory;
 import com.intellij.openapi.util.NlsContexts;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -17,6 +18,7 @@ import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.TransformationFi
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public class PdiFacetSdkSetupValidator implements ProjectSdkSetupValidator {
@@ -26,11 +28,8 @@ public class PdiFacetSdkSetupValidator implements ProjectSdkSetupValidator {
 
     @Override
     public @Nullable @NlsContexts.Label String getErrorMessage(@NotNull Project project, @NotNull VirtualFile file) {
-        return PdiFacet.getInstance(project, file)
-                .map(PdiFacet::getSdk)
-                .map(sdk -> (String)null)
-                .orElse("No Pentaho Data Integration SDK defined for this module!");
-
+        Optional<Sdk> sdk = PdiFacet.getInstance(project, file).flatMap(PdiFacet::getSdk);
+        return sdk.isPresent() ? null : "No Pentaho Data Integration SDK defined for this module!" ;
     }
 
     @Override

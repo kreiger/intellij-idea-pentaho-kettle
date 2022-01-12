@@ -53,10 +53,8 @@ intellij {
   version = "2021.3"
   pluginName = 'pentaho-kettle'
   plugins = [
-          'org.intellij.plugins.markdown',
-          'DatabaseTools',
-          'JavaEE',
-          'uml'
+          'com.intellij.java',
+          'DatabaseTools'
   ]
   downloadSources = true
 }

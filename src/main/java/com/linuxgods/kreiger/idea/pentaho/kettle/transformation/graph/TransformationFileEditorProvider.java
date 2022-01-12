@@ -16,8 +16,8 @@ public class TransformationFileEditorProvider implements FileEditorProvider, Dum
     private static final String EDITOR_TYPE_ID = "ktr";
 
     @Override public boolean accept(@NotNull Project project, @NotNull VirtualFile file) {
-        return PdiFacet.getInstance(project, file).isPresent() &&
-                file.getFileType() instanceof TransformationFileType;
+        return file.getFileType() instanceof TransformationFileType &&
+                PdiFacet.getInstance(project, file).flatMap(PdiFacet::getSdkAdditionalData).isPresent();
     }
 
     @Override public @NotNull FileEditor createEditor(@NotNull Project project, @NotNull VirtualFile file) {

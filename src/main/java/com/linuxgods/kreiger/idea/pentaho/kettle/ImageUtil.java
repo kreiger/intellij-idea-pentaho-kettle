@@ -2,7 +2,6 @@ package com.linuxgods.kreiger.idea.pentaho.kettle;
 
 import com.intellij.ui.scale.ScaleContext;
 import com.intellij.util.ImageLoader;
-import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.TransformationGraphPresentationModel;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -35,7 +34,7 @@ public class ImageUtil {
     }
 
     public static Image loadMissingEntry() {
-        Image image = ImageLoader.loadFromUrl(TransformationGraphPresentationModel.class.getResource("/ui/images/missing_entry.svg"));
+        Image image = ImageLoader.loadFromUrl(ImageUtil.class.getResource("/ui/images/missing_entry.svg"));
         return drawOnBackground(Color.RED, 0.2f, image);
     }
 }

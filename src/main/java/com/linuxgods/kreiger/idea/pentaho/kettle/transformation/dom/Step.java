@@ -1,21 +1,25 @@
 package com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom;
 
 import com.intellij.codeInsight.daemon.*;
+import com.intellij.codeInsight.hints.*;
+import com.intellij.codeInsight.hints.presentation.InlayPresentation;
+import com.intellij.codeInsight.hints.presentation.PresentationFactory;
+import com.intellij.codeInsight.hints.presentation.SequencePresentation;
 import com.intellij.ide.IconProvider;
 import com.intellij.ide.presentation.PresentationProvider;
-import com.intellij.lang.jvm.JvmModifier;
+import com.intellij.lang.Language;
+import com.intellij.openapi.editor.BlockInlayPriority;
+import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.GutterIconRenderer;
 import com.intellij.openapi.paths.PathReference;
 import com.intellij.patterns.PsiElementPattern;
-import com.intellij.patterns.XmlElementPattern;
 import com.intellij.psi.*;
-import com.intellij.psi.xml.XmlTag;
-import com.intellij.psi.xml.XmlTagValue;
-import com.intellij.psi.xml.XmlText;
-import com.intellij.psi.xml.XmlTokenType;
+import com.intellij.psi.xml.*;
 import com.intellij.util.xml.*;
 import com.intellij.util.xml.converters.PathReferenceConverter;
 import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacet;
+import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.TransformationLanguage;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
@@ -32,16 +36,17 @@ import static java.util.stream.Collectors.toList;
 
 public interface Step extends DomElement {
 
-    @PropertyAccessor("name")
     @NameValue
-    @Required
-    default String getName() {
+    default String getNameUntrimmed() {
         XmlTag xmlTag = getXmlTag();
         if (xmlTag == null) return null;
         String nameText = xmlTag.getSubTagText("name");
         if (nameText == null) return null;
         return StringEscapeUtils.unescapeXml(nameText);
     }
+
+    @Required
+    GenericDomValue<String> getName();
 
     @Required
     @Referencing(value = StepTypeConverter.class, soft = true)
@@ -166,6 +171,130 @@ public interface Step extends DomElement {
                             .toArray(ResolveResult[]::new);
                 }
             }};
+        }
+    }
+
+    @SuppressWarnings("UnstableApiUsage")
+    class StepInlayHintsProvider implements InlayHintsProvider<NoSettings> {
+
+
+        private static final SettingsKey<NoSettings> SETTINGS_KEY = new SettingsKey<>("Step Hints");
+
+        @Nullable
+        @Override
+        public InlayHintsCollector getCollectorFor(@NotNull PsiFile psiFile, @NotNull Editor editor, @NotNull NoSettings noSettings, @NotNull InlayHintsSink inlayHintsSink) {
+            Transformation transformation = Transformation.getTransformation(psiFile.getProject(), psiFile.getVirtualFile());
+            DomManager domManager = DomManager.getDomManager(psiFile.getProject());
+            System.out.println("getCollectorFor "+psiFile);
+            return new FactoryInlayHintsCollector(editor) {
+                @Override
+                public boolean collect(@NotNull PsiElement psiElement, @NotNull Editor editor1, @NotNull InlayHintsSink sink) {
+                    if (!(psiElement instanceof XmlTag)) {
+                        return true;
+                    }
+                    XmlTag xmlTag = (XmlTag) psiElement;
+                    DomElement domElement = domManager.getDomElement(xmlTag);
+                    if (domElement == null) {
+                        return true;
+                    }
+                    DomElement parent = domElement.getParent();
+                    if (!(parent instanceof Step) || !"name".equals(domElement.getXmlElementName())) {
+                        return true;
+                    }
+                    Step step = (Step) parent;
+
+                    System.out.println("Step:" + step.getNameUntrimmed());
+                    for (Hop hop : transformation.getOrder().getHops()) {
+                        Step from = hop.getFrom().getValue();
+                        Step to = hop.getTo().getValue();
+                        if (null == from || null == to) {
+                            continue;
+                        }
+                        if (to.equals(step)) {
+                            int offset = xmlTag.getTextOffset();
+                            Document document = editor1.getDocument();
+                            int line = document.getLineNumber(offset);
+                            int startOffset = document.getLineStartOffset(line);
+                            int column = offset - startOffset;
+                            PresentationFactory factory = this.getFactory();
+                            InlayPresentation smallText = factory.smallText(from.getNameUntrimmed() + " \u2192");
+                            InlayPresentation mouseHandling = factory.mouseHandling(smallText, (mouseEvent, point) -> ((NavigatablePsiElement)from.getXmlTag()).navigate(true), null);
+                            InlayPresentation inlayPresentation = new SequencePresentation(List.of(factory.textSpacePlaceholder(column, true), mouseHandling));
+                            sink.addBlockElement(offset, false, true, BlockInlayPriority.CODE_VISION, inlayPresentation);
+                        }
+                        if (from.equals(step)) {
+                            int offset = xmlTag.getTextOffset();
+                            Document document = editor.getDocument();
+                            int line = editor1.getDocument().getLineNumber(offset);
+                            int startOffset = document.getLineStartOffset(line);
+                            int column = offset - startOffset;
+                            int nextLine = line + 1;
+                            int nextLineStartOffset = document.getLineStartOffset(nextLine);
+                            PresentationFactory factory = this.getFactory();
+                            InlayPresentation smallText = factory.smallText("\u2192 " + to.getNameUntrimmed());
+                            InlayPresentation mouseHandling = factory.mouseHandling(smallText, (mouseEvent, point) -> ((NavigatablePsiElement)to.getXmlTag()).navigate(true), null);
+                            InlayPresentation inlayPresentation = new SequencePresentation(List.of(factory.textSpacePlaceholder(column, true), mouseHandling));
+                            sink.addBlockElement(nextLineStartOffset, true, true, BlockInlayPriority.CODE_VISION, inlayPresentation);
+                        }
+                    }
+                    return true;
+                }
+
+                @NotNull
+                private InlayPresentation getIndentedPresentation(String text, int offset) {
+                    Document document = editor.getDocument();
+                    int line = document.getLineNumber(offset);
+                    int startOffset = document.getLineStartOffset(line);
+                    int column = offset - startOffset;
+                    PresentationFactory factory = this.getFactory();
+                    return new SequencePresentation(List.of(factory.textSpacePlaceholder(column, true), factory.smallText(text)));
+                }
+            };
+        }
+
+        @NotNull
+        @Override
+        public NoSettings createSettings() {
+            return new NoSettings();
+        }
+
+        @Nls(capitalization = Nls.Capitalization.Sentence)
+        @NotNull
+        @Override
+        public String getName() {
+            return "Step";
+        }
+
+        @NotNull
+        @Override
+        public SettingsKey<NoSettings> getKey() {
+            return SETTINGS_KEY;
+        }
+
+        @Nullable
+        @Override
+        public String getPreviewText() {
+            return null;
+        }
+
+        @NotNull
+        @Override
+        public ImmediateConfigurable createConfigurable(@NotNull NoSettings noSettings) {
+            return changeListener -> {
+                JPanel panel = new JPanel();
+                panel.setVisible(false);
+                return panel;
+            };
+        }
+
+        @Override
+        public boolean isLanguageSupported(@NotNull Language language) {
+            return language.is(TransformationLanguage.INSTANCE);
+        }
+
+        @Override
+        public boolean isVisibleInSettings() {
+            return false;
         }
     }
 }

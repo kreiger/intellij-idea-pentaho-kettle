@@ -16,8 +16,8 @@ public interface Transformation extends DomElement {
 
     @NotNull static Transformation getTransformation(Project project, VirtualFile file) {
         PsiManager psiManager = PsiManager.getInstance(project);
-        XmlFile xmlFile = (XmlFile) psiManager.findFile(file);
         DomManager domManager = DomManager.getDomManager(project);
+        XmlFile xmlFile = (XmlFile) psiManager.findFile(file);
         DomFileElement<Transformation> fileElement = domManager.getFileElement(xmlFile, Transformation.class);
         return fileElement.getRootElement();
     }

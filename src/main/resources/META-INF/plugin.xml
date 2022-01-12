@@ -20,15 +20,15 @@
 
     <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html
          on how to target different products -->
+    <depends>com.intellij</depends>
     <depends>com.intellij.modules.ultimate</depends>
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.lang</depends>
+    <depends>com.intellij.modules.java</depends>
     <depends>com.intellij.modules.xml</depends>
     <depends>com.intellij.modules.database</depends>
     <depends>com.intellij.modules.sql</depends>
     <depends>com.intellij.database</depends>
-    <depends>com.intellij.javaee</depends>
-    <depends>com.intellij.diagram</depends>
     <!-- depends>org.intellij.plugins.markdown</depends -->
 
     <applicationListeners>
@@ -42,6 +42,8 @@
         <iconProvider implementation="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step$StepIconProvider" />
         <presentationProvider forClass="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step"
                               implementationClass="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step$StepPresentationProvider"/>
+        <codeInsight.inlayProvider language="PentahoKettleTransformation"
+                                   implementationClass="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step$StepInlayHintsProvider" />
         <fileType name="KTR"
                   extensions="ktr"
                   language="PentahoKettleTransformation"
