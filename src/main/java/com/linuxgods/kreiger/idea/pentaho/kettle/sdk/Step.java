@@ -1,6 +1,7 @@
 package com.linuxgods.kreiger.idea.pentaho.kettle.sdk;
 
 import org.jdom.Element;
+import org.jetbrains.annotations.NotNull;
 
 import static java.util.Objects.requireNonNull;
 
@@ -29,5 +30,13 @@ public class Step {
 
     public String getClassName() {
         return className;
+    }
+
+    @NotNull Element createElement() {
+        Element stepElement = new Element("step");
+        stepElement.setAttribute("id", getId());
+        stepElement.setAttribute("image", getImage());
+        if (null != getClassName()) stepElement.setAttribute("classname", getClassName());
+        return stepElement;
     }
 }

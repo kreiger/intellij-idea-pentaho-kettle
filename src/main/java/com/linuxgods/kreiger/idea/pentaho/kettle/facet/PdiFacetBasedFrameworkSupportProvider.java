@@ -22,13 +22,11 @@ public class PdiFacetBasedFrameworkSupportProvider extends FacetBasedFrameworkSu
 
     @Override
     public void setupConfiguration(PdiFacet facet, ModifiableRootModel rootModel, FrameworkVersion version) {
-        System.out.println("setupConfiguration");
         @NotNull PdiFacetConfiguration configuration = facet.getConfiguration();
         Sdk sdk = configuration.getSdk();
         if (sdk == null) {
             return;
         }
-        System.out.println("setupConfiguration sdk: "+sdk.getName());
         String[] urls = sdk.getRootProvider().getUrls(OrderRootType.CLASSES);
 
         LibraryTable globalLibraries = LibraryTablesRegistrar.getInstance().getLibraryTable();
@@ -42,22 +40,18 @@ public class PdiFacetBasedFrameworkSupportProvider extends FacetBasedFrameworkSu
 
     @Override
     protected void addSupport(@NotNull Module module, @NotNull ModifiableRootModel rootModel, FrameworkVersion version, @Nullable Library library) {
-        System.out.println("addSupport");
         super.addSupport(module, rootModel, version, library);
     }
 
     @Override public boolean isSupportAlreadyAdded(@NotNull Module module) {
-        System.out.println("isSupportAlreadyAdded(module)");
         return super.isSupportAlreadyAdded(module);
     }
 
     @Override public boolean isSupportAlreadyAdded(@NotNull Module module, @NotNull FacetsProvider facetsProvider) {
-        System.out.println("isSupportAlreadyAdded(module, facetsProvider)");
         return super.isSupportAlreadyAdded(module, facetsProvider);
     }
 
     @Override public @NotNull FrameworkSupportConfigurable createConfigurable(@NotNull FrameworkSupportModel model) {
-        System.out.println("createConfigurable(model)");
         return super.createConfigurable(model);
     }
 }

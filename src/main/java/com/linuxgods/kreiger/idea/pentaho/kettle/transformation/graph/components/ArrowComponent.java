@@ -20,8 +20,6 @@ public class ArrowComponent extends JComponent {
     private Point fromPoint;
     private Point toPoint;
 
-    private Color color = JBColor.GRAY;
-
     public ArrowComponent(StepComponent from, StepComponent to) {
         update(from, to);
         ComponentAdapter moveListener = new ComponentAdapter() {
@@ -31,16 +29,6 @@ public class ArrowComponent extends JComponent {
         };
         from.addComponentListener(moveListener);
         to.addComponentListener(moveListener);
-        addMouseListener(new MouseAdapter() {
-            @Override public void mouseEntered(MouseEvent e) {
-                color = JBColor.RED;
-                repaint();
-            }
-            @Override public void mouseExited(MouseEvent e) {
-                color = JBColor.GRAY;
-                repaint();
-            }
-        });
     }
 
     private void update(StepComponent from, StepComponent to) {
@@ -58,7 +46,7 @@ public class ArrowComponent extends JComponent {
     @Override protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
-        g2.setColor(color);
+        g2.setColor(JBColor.GRAY);
         g2.setStroke(new BasicStroke(2));
         Line2D line = getLine();
         g2.draw(line);

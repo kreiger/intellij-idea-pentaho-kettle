@@ -2,10 +2,14 @@ package com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph;
 
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
-import com.intellij.openapi.fileEditor.*;
+import com.intellij.openapi.fileEditor.FileEditor;
+import com.intellij.openapi.fileEditor.FileEditorLocation;
+import com.intellij.openapi.fileEditor.FileEditorState;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.NavigatablePsiElement;
+import com.intellij.ui.components.JBScrollPane;
 import com.linuxgods.kreiger.idea.pentaho.kettle.ImageUtil;
 import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacet;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Hop;
@@ -13,7 +17,6 @@ import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Transformation;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.components.ArrowComponent;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.components.GoToStepListener;
-import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.components.MouseDragAdapter;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.components.StepComponent;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NonNls;
@@ -26,7 +29,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.beans.PropertyChangeListener;
 import java.util.Map;
-import java.util.Optional;
 
 import static java.awt.RenderingHints.KEY_ANTIALIASING;
 import static java.awt.RenderingHints.VALUE_ANTIALIAS_ON;
@@ -43,28 +45,24 @@ public class TransformationFileEditor implements FileEditor {
         this.graphComponent = new GraphComponent(file);
         JComponent graphViewComponent = graphComponent.getView();
         Transformation transformation = Transformation.getTransformation(project, file);
-        createGraph(project, file, graphViewComponent, transformation, pdiFacet);
+        createGraph(graphViewComponent, transformation, pdiFacet);
 
         transformation.getManager().addDomEventListener(event -> {
                 LOGGER.warn("Document changed");
                 graphViewComponent.removeAll();
-                graphComponent.repaint();;
-                createGraph(project, file, graphViewComponent, transformation, pdiFacet);
+                graphComponent.repaint();
+                createGraph(graphViewComponent, transformation, pdiFacet);
                 graphComponent.revalidate();
                 graphComponent.repaint();
             }, this);
     }
 
-    private void createGraph(Project project, @NotNull VirtualFile file, JComponent graphViewComponent, Transformation transformation, PdiFacet pdiFacet) {
+    private void createGraph(JComponent graphViewComponent, Transformation transformation, PdiFacet pdiFacet) {
         Map<Step, StepComponent> stepComponents = transformation.getSteps().stream()
                 .collect(toMap(identity(), step -> createStepComponent(pdiFacet, step)));
         for (StepComponent stepComponent : stepComponents.values()) {
             stepComponent.addMouseListener(new GoToStepListener(() -> {
-                Step step = stepComponent.getStep();
-                step.getTextOffset().ifPresent(textOffset -> {
-                    FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-                    fileEditorManager.openTextEditor(new OpenFileDescriptor(project, file, textOffset), true);
-                });
+                ((NavigatablePsiElement)stepComponent.getStep().getXmlTag()).navigate(true);
             }));
             graphViewComponent.add(stepComponent);
 
@@ -140,17 +138,36 @@ public class TransformationFileEditor implements FileEditor {
 
     private static class GraphComponent extends JPanel implements DataProvider, @NotNull Disposable {
 
-        private final JComponent view;
+        private final JPanel view;
         private final VirtualFile file;
 
         public GraphComponent(VirtualFile file) {
             super(new BorderLayout());
             this.file = file;
-            view = new JComponent() {
+            view = new JPanel(null) {
                 @Override protected void paintComponent(Graphics g) {
                     Graphics2D g2 = (Graphics2D) g;
                     g2.setRenderingHint(KEY_ANTIALIASING, VALUE_ANTIALIAS_ON);
                     super.paintComponent(g);
+                }
+
+                @Override
+                public Dimension getPreferredSize() {
+                    Component[] components = getComponents();
+                    if (components.length == 0) return new Dimension(0, 0);
+                    int minX = Integer.MAX_VALUE;
+                    int minY = Integer.MAX_VALUE;
+                    int maxWidth = 0;
+                    int maxHeight = 0;
+                    for (Component component : components) {
+                        Dimension componentPreferredSize = component.getPreferredSize();
+                        minX = Integer.min(minX, component.getX());
+                        minY = Integer.min(minY, component.getY());
+                        maxWidth = Integer.max(maxWidth, component.getX() + (int) componentPreferredSize.getWidth());
+                        maxHeight = Integer.max(maxHeight, component.getY() + (int) componentPreferredSize.getHeight());
+                    }
+                    int margin = Math.max(minX, minY);
+                    return new Dimension(maxWidth+margin, maxHeight+margin);
                 }
             };
             DefaultActionGroup toolbarGroup = (DefaultActionGroup) ActionManager.getInstance().getAction("PentahoKettleTransformationGraphToolbar");
@@ -158,15 +175,9 @@ public class TransformationFileEditor implements FileEditor {
             actionToolbar.setTargetComponent(view);
             add(actionToolbar.getComponent(), BorderLayout.NORTH);
 
-            new MouseDragAdapter(view) {
-                @Override public void mouseDraggedTo(Component component, int x, int y) {
-                    view.setLocation(x,y);
-                    view.repaint();
-                }
-            };
-
             //var layer = new JLayer<>(view, new GraphLayerUI());
-            add(new JScrollPane(view), BorderLayout.CENTER);
+            JScrollPane scrollPane = new JBScrollPane(view);
+            add(scrollPane, BorderLayout.CENTER);
         }
 
         public JComponent getView() {

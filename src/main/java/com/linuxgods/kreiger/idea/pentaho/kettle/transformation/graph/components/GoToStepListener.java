@@ -1,5 +1,6 @@
 package com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.components;
 
+import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -12,8 +13,16 @@ public class GoToStepListener extends MouseAdapter {
     }
 
     @Override public void mouseClicked(MouseEvent e) {
-        if (e.getClickCount() == 2 || (e.getModifiersEx() & InputEvent.CTRL_DOWN_MASK) != 0) {
-            runnable.run();
-        }
+        runnable.run();
+    }
+
+    @Override
+    public void mouseEntered(MouseEvent e) {
+        e.getComponent().setCursor(new Cursor(Cursor.HAND_CURSOR));
+    }
+
+    @Override
+    public void mouseExited(MouseEvent e) {
+        e.getComponent().setCursor(null);
     }
 }

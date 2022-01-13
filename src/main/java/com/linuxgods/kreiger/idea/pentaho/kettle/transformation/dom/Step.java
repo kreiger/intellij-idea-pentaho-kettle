@@ -12,9 +12,13 @@ import com.intellij.openapi.editor.BlockInlayPriority;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.GutterIconRenderer;
+import com.intellij.openapi.fileTypes.FileType;
 import com.intellij.openapi.paths.PathReference;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.NlsSafe;
 import com.intellij.patterns.PsiElementPattern;
 import com.intellij.psi.*;
+import com.intellij.psi.tree.IStubFileElementType;
 import com.intellij.psi.xml.*;
 import com.intellij.util.xml.*;
 import com.intellij.util.xml.converters.PathReferenceConverter;
@@ -26,7 +30,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import java.awt.*;
+import java.awt.event.MouseEvent;
 import java.util.*;
+import java.util.List;
 import java.util.stream.Stream;
 
 import static com.intellij.patterns.PlatformPatterns.psiElement;
@@ -44,6 +51,7 @@ public interface Step extends DomElement {
         if (nameText == null) return null;
         return StringEscapeUtils.unescapeXml(nameText);
     }
+
 
     @Required
     GenericDomValue<String> getName();
@@ -64,19 +72,6 @@ public interface Step extends DomElement {
 
     default int getY() {
         return getGUI().getYloc().getValue();
-    }
-
-    default OptionalInt getTextOffset() {
-        XmlTag xmlTag = getXmlTag();
-        if (xmlTag == null) {
-            return OptionalInt.empty();
-        }
-        XmlTag nameTag = xmlTag.findFirstSubTag("name");
-        if (nameTag == null) {
-            return OptionalInt.of(xmlTag.getTextOffset());
-        }
-        XmlTagValue nameText = nameTag.getValue();
-        return OptionalInt.of(nameText.getTextRange().getStartOffset());
     }
 
     interface Type extends DomElement {
@@ -178,6 +173,12 @@ public interface Step extends DomElement {
 
         private static final SettingsKey<NoSettings> SETTINGS_KEY = new SettingsKey<>("Step Hints");
 
+        @NotNull
+        @Override
+        public PsiFile createFile(@NotNull Project project, @NotNull FileType fileType, @NotNull Document document) {
+            return InlayHintsProvider.super.createFile(project, fileType, document);
+        }
+
         @Nullable
         @Override
         public InlayHintsCollector getCollectorFor(@NotNull PsiFile psiFile, @NotNull Editor editor, @NotNull NoSettings noSettings, @NotNull InlayHintsSink inlayHintsSink) {
@@ -205,6 +206,21 @@ public interface Step extends DomElement {
                         if (null == from || null == to) {
                             continue;
                         }
+                        InlayPresentationFactory.HoverListener hoverListener = new InlayPresentationFactory.HoverListener() {
+                            private Runnable hoverFinished;
+
+                            @Override
+                            public void onHover(@NotNull MouseEvent mouseEvent, @NotNull Point point) {
+                                Component component = mouseEvent.getComponent();
+                                component.setCursor(new Cursor(Cursor.HAND_CURSOR));
+                                this.hoverFinished = () -> component.setCursor(null);
+                            }
+
+                            @Override
+                            public void onHoverFinished() {
+                                this.hoverFinished.run();
+                            }
+                        };
                         if (to.equals(step)) {
                             int offset = xmlTag.getTextOffset();
                             Document document = editor1.getDocument();
@@ -212,9 +228,9 @@ public interface Step extends DomElement {
                             int startOffset = document.getLineStartOffset(line);
                             int column = offset - startOffset;
                             PresentationFactory factory = this.getFactory();
-                            InlayPresentation smallText = factory.smallText(from.getNameUntrimmed() + " \u2192");
-                            InlayPresentation mouseHandling = factory.mouseHandling(smallText, (mouseEvent, point) -> ((NavigatablePsiElement)from.getXmlTag()).navigate(true), null);
-                            InlayPresentation inlayPresentation = new SequencePresentation(List.of(factory.textSpacePlaceholder(column, true), mouseHandling));
+                            InlayPresentation text = factory.text(from.getType().getStringValue()+": "+from.getNameUntrimmed() + " \u27F6");
+                            InlayPresentation mouseHandling = factory.mouseHandling(text, (mouseEvent, point) -> ((NavigatablePsiElement) from.getXmlTag()).navigate(true), hoverListener);
+                            InlayPresentation inlayPresentation = new SequencePresentation(List.of(factory.textSpacePlaceholder(column, false), mouseHandling));
                             sink.addBlockElement(offset, false, true, BlockInlayPriority.CODE_VISION, inlayPresentation);
                         }
                         if (from.equals(step)) {
@@ -226,9 +242,9 @@ public interface Step extends DomElement {
                             int nextLine = line + 1;
                             int nextLineStartOffset = document.getLineStartOffset(nextLine);
                             PresentationFactory factory = this.getFactory();
-                            InlayPresentation smallText = factory.smallText("\u2192 " + to.getNameUntrimmed());
-                            InlayPresentation mouseHandling = factory.mouseHandling(smallText, (mouseEvent, point) -> ((NavigatablePsiElement)to.getXmlTag()).navigate(true), null);
-                            InlayPresentation inlayPresentation = new SequencePresentation(List.of(factory.textSpacePlaceholder(column, true), mouseHandling));
+                            InlayPresentation text = factory.text("\u27F6 " + to.getType().getStringValue()+": "+to.getNameUntrimmed());
+                            InlayPresentation mouseHandling = factory.mouseHandling(text, (mouseEvent, point) -> ((NavigatablePsiElement)to.getXmlTag()).navigate(true), hoverListener);
+                            InlayPresentation inlayPresentation = new SequencePresentation(List.of(factory.textSpacePlaceholder(column, false), mouseHandling));
                             sink.addBlockElement(nextLineStartOffset, true, true, BlockInlayPriority.CODE_VISION, inlayPresentation);
                         }
                     }
@@ -284,7 +300,7 @@ public interface Step extends DomElement {
 
         @Override
         public boolean isLanguageSupported(@NotNull Language language) {
-            return language.is(TransformationLanguage.INSTANCE);
+            return DefaultImpls.isLanguageSupported(this, language);
         }
 
         @Override

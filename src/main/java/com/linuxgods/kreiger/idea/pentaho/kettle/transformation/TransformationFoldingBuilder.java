@@ -418,7 +418,7 @@ public class TransformationFoldingBuilder extends FoldingBuilderEx implements Du
         if (null != from && null != to) {
             String fromValue = leftPad(from.getValue(), longestFromValueLength);
             String toValue = rightPad(to.getValue(), longestToValueLength);
-            return "<hop> " + fromValue + "  \u2192  " + toValue+ " </hop>";
+            return "<hop> " + fromValue + "  \u27F6  " + toValue+ " </hop>";
         }
         return null;
     }

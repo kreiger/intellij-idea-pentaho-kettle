@@ -28,7 +28,7 @@ import static com.intellij.openapi.roots.DependencyScope.RUNTIME;
 
 public class PdiFacetType extends FacetType<PdiFacet, PdiFacetConfiguration> {
     public static final FacetTypeId<PdiFacet> ID = new FacetTypeId<>("PentahoKettle");
-    public static final String NAME = "Pentaho Kettle";
+    public static final String NAME = "Pentaho Data Integration (Kettle)";
     public static final PdiFacetType INSTANCE = new PdiFacetType();
 
     public PdiFacetType() {

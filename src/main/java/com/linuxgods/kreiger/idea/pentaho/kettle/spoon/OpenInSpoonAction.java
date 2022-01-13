@@ -30,8 +30,8 @@ public class OpenInSpoonAction extends AnAction {
         boolean transformation = null != file && FILE_TYPE.equals(file.getFileType());
 
         Presentation presentation = e.getPresentation();
+        presentation.setDisabledIcon(presentation.getIcon());
         presentation.setVisible(transformation);
-
 
         Optional<VirtualFile> spoon = getSpoon(e.getProject(), file);
         if (spoon.isEmpty()) {
@@ -41,7 +41,7 @@ public class OpenInSpoonAction extends AnAction {
         Optional<String> jdk8Home = getJdkHomeByVersion(JavaSdkVersion.JDK_1_8);
         if (jdk8Home.isEmpty()) {
             presentation.setEnabled(false);
-            presentation.setDescription("JDK 8 is not present.");
+            presentation.setDescription("Can't open in Spoon, JDK 8 is not present.");
         }
     }
 

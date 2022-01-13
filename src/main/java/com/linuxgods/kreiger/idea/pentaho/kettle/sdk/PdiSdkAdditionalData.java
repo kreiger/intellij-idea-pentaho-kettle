@@ -4,10 +4,7 @@ import com.intellij.openapi.projectRoots.Sdk;
 import com.intellij.openapi.projectRoots.SdkAdditionalData;
 import com.intellij.openapi.roots.OrderRootType;
 import com.intellij.openapi.vfs.VfsUtilCore;
-import com.intellij.ui.scale.ScaleContext;
 import com.intellij.util.ImageLoader;
-import com.intellij.util.ui.ImageUtil;
-import com.intellij.util.ui.StartupUiUtil;
 import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
 
@@ -17,7 +14,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -73,11 +69,8 @@ public class PdiSdkAdditionalData implements SdkAdditionalData {
         Element steps = new Element("steps");
         rootElement.addContent(steps);
         this.steps.forEach((id, step) -> {
-            Element stepElement = new Element("step");
-            stepElement.setAttribute("id", step.getId());
-            stepElement.setAttribute("image", step.getImage());
-            stepElement.setAttribute("classname", step.getClassName());
-            steps.addContent(stepElement);
+            Element element = step.createElement();
+            steps.addContent(element);
         });
     }
 

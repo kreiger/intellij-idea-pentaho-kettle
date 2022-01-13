@@ -54,7 +54,9 @@ intellij {
   pluginName = 'pentaho-kettle'
   plugins = [
           'com.intellij.java',
-          'DatabaseTools'
+          'IntelliLang',
+          'DatabaseTools',
+          'java-i18n'
   ]
   downloadSources = true
 }
