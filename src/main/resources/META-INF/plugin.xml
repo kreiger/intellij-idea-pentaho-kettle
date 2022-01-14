@@ -39,7 +39,7 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <psi.referenceContributor language="JAVA"
-                                  implementation="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.step.StepReferenceContributor" />
+                                  implementation="com.linuxgods.kreiger.idea.pentaho.kettle.JavaReferenceContributor" />
         <fileBasedIndex implementation="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.step.StepIndex" />
         <codeInsight.lineMarkerProvider language="PentahoKettleTransformation"
                                         implementationClass="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step$StepLineMarkerProvider" />

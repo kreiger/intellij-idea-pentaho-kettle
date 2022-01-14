@@ -50,7 +50,7 @@ dependencies {
 
 intellij {
   type = 'IU'
-  version = "2021.3"
+  version = "2021.3.1"
   pluginName = 'pentaho-kettle'
   plugins = [
           'com.intellij.java',

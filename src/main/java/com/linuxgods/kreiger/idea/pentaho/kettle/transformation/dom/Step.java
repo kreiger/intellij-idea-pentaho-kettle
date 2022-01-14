@@ -16,14 +16,15 @@ import com.intellij.openapi.fileTypes.FileType;
 import com.intellij.openapi.paths.PathReference;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.NlsSafe;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.newvfs.VfsPresentationUtil;
 import com.intellij.patterns.PsiElementPattern;
 import com.intellij.psi.*;
-import com.intellij.psi.tree.IStubFileElementType;
+import com.intellij.psi.impl.FakePsiElement;
 import com.intellij.psi.xml.*;
 import com.intellij.util.xml.*;
 import com.intellij.util.xml.converters.PathReferenceConverter;
 import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacet;
-import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.TransformationLanguage;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
@@ -72,6 +73,42 @@ public interface Step extends DomElement {
 
     default int getY() {
         return getGUI().getYloc().getValue();
+    }
+
+    default Optional<Icon> getIcon() {
+        return PdiFacet.getInstance(getModule())
+                .flatMap(pdiFacet -> pdiFacet.getIcon(getType().getStringValue()));
+    }
+
+    @NotNull
+    default FakePsiElement getFakePsiElement() {
+        return new FakePsiElement() {
+            @Override
+            public PsiElement getParent() {
+                return getXmlTag();
+            }
+
+            @Override
+            public @Nullable Icon getIcon(boolean open) {
+                return Step.this.getIcon().orElse(null);
+            }
+
+            @Override
+            public String getPresentableText() {
+                return getNameUntrimmed();
+            }
+
+            @Override
+            public @NlsSafe @Nullable String getLocationString() {
+                VirtualFile file = getNavigationElement().getContainingFile().getVirtualFile();
+                return VfsPresentationUtil.getUniquePresentableNameForUI(getProject(), file);
+            }
+
+            @Override
+            public @NotNull PsiElement getNavigationElement() {
+                return Step.this.getName().getXmlTag();
+            }
+        };
     }
 
     interface Type extends DomElement {
