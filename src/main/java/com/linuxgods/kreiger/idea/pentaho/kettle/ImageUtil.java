@@ -37,4 +37,5 @@ public class ImageUtil {
         Image image = ImageLoader.loadFromUrl(ImageUtil.class.getResource("/ui/images/missing_entry.svg"));
         return drawOnBackground(Color.RED, 0.2f, image);
     }
+
 }

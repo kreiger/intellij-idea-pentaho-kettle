@@ -8,18 +8,18 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.projectRoots.Sdk;
 import com.intellij.openapi.util.NlsSafe;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.JavaPsiFacade;
-import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiElement;
+import com.intellij.psi.*;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.linuxgods.kreiger.idea.pentaho.kettle.ImageUtil;
 import com.linuxgods.kreiger.idea.pentaho.kettle.sdk.PdiSdkAdditionalData;
-import com.linuxgods.kreiger.idea.pentaho.kettle.sdk.Step;
+import com.linuxgods.kreiger.idea.pentaho.kettle.sdk.StepType;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import java.awt.*;
-import java.util.Optional;
+import java.awt.Image;
+import java.awt.Color;
+import java.util.*;
+
 import java.util.stream.Stream;
 
 public class PdiFacet extends Facet<PdiFacetConfiguration> {
@@ -28,6 +28,7 @@ public class PdiFacet extends Facet<PdiFacetConfiguration> {
     }
 
     public static Optional<PdiFacet> getInstance(@NotNull PsiElement element) {
+        if (!element.isValid()) return Optional.empty();
         return PdiFacet.getInstance(element.getProject(), element.getContainingFile().getVirtualFile());
     }
 
@@ -35,9 +36,18 @@ public class PdiFacet extends Facet<PdiFacetConfiguration> {
         return Optional.ofNullable(FacetManager.getInstance(module).getFacetByType(PdiFacetType.ID));
     }
 
-    public static Optional<PdiFacet> getInstance(@NotNull Project project, @NotNull VirtualFile file) {
+    public static Optional<PdiFacet> getInstance(Project project, VirtualFile file) {
+        if (project == null || file == null) return Optional.empty();
         return Optional.ofNullable(ModuleUtilCore.findModuleForFile(file, project))
                 .flatMap(PdiFacet::getInstance);
+    }
+
+    @NotNull
+    private static Stream<? extends PsiMethod> getPublicMethods(PsiClass psiClass, String... methodNames) {
+        Set<String> methodNamesSet = Set.of(methodNames);
+        return Arrays.stream(psiClass.getMethods())
+                .filter(psiMethod -> psiMethod.hasModifierProperty(PsiModifier.PUBLIC))
+                .filter(psiMethod -> methodNamesSet.contains(psiMethod.getName()));
     }
 
     public Optional<Image> getImage(String id) {
@@ -52,8 +62,7 @@ public class PdiFacet extends Facet<PdiFacetConfiguration> {
     }
 
     public Optional<Icon> getIcon(String type) {
-        return getImage(type)
-                .map(ImageIcon::new);
+        return getStepType(type).map(StepType::getIcon);
     }
 
     public Stream<PsiClass> findStepMetaClasses(String type, @NotNull GlobalSearchScope resolveScope) {
@@ -66,14 +75,31 @@ public class PdiFacet extends Facet<PdiFacetConfiguration> {
     }
 
     @NotNull public Optional<String> getClassName(String type) {
-        return getSdkAdditionalData()
-                .flatMap(sdkAdditionalData -> sdkAdditionalData.getStep(type))
-                .map(Step::getClassName);
+        return getStepType(type)
+                .map(StepType::getClassName);
     }
 
+    @NotNull public Optional<StepType> getStepType(String type) {
+        return getSdkAdditionalData()
+                .flatMap(sdkAdditionalData -> sdkAdditionalData.getStepType(type));
+    }
+
+
+    public Stream<StepType> getStepTypes() {
+        return getSdkAdditionalData().stream()
+                .flatMap(PdiSdkAdditionalData::getStepTypes);
+
+    }
 
     Optional<Sdk> getSdk() {
         return Optional.of(getConfiguration())
                 .map(PdiFacetConfiguration::getSdk);
     }
+
+    @NotNull
+    public Stream<NavigatablePsiElement> getTypePsiElements(String type, @NotNull GlobalSearchScope resolveScope) {
+        return findStepMetaClasses(type, resolveScope)
+                .flatMap(psiClass -> Stream.<NavigatablePsiElement>concat(Stream.of(psiClass), getPublicMethods(psiClass, "getXML", "loadXML")));
+    }
+
 }

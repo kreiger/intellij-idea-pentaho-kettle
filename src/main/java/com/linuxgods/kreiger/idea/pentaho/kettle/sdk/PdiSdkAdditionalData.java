@@ -14,6 +14,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -25,11 +26,11 @@ import static java.util.stream.Collectors.toMap;
 
 public class PdiSdkAdditionalData implements SdkAdditionalData {
     private final ClassLoader classLoader;
-    private final Map<String, Step> steps;
+    private final Map<String, StepType> stepTypes;
 
-    public PdiSdkAdditionalData(Map<String, Step> steps, @NotNull URLClassLoader classLoader) {
+    public PdiSdkAdditionalData(Map<String, StepType> stepTypes, @NotNull URLClassLoader classLoader) {
         this.classLoader = classLoader;
-        this.steps = steps;
+        this.stepTypes = stepTypes;
     }
 
     @NotNull public static URLClassLoader createClassLoader(List<URL> urls) {
@@ -56,20 +57,21 @@ public class PdiSdkAdditionalData implements SdkAdditionalData {
     }
 
     @NotNull private Optional<URL> getImageResource(String id) {
-        return getStep(id)
-                .map(Step::getImage)
+        return getStepType(id)
+                .map(StepType::getImagePath)
                 .map(classLoader::getResource);
     }
 
-    @NotNull public Optional<Step> getStep(String id) {
-        return Optional.ofNullable(steps.get(id));
+    @NotNull public Optional<StepType> getStepType(String id) {
+        return Optional.ofNullable(stepTypes.get(id));
     }
+
 
     public void save(Element rootElement) {
         Element steps = new Element("steps");
         rootElement.addContent(steps);
-        this.steps.forEach((id, step) -> {
-            Element element = step.createElement();
+        this.stepTypes.forEach((id, stepType) -> {
+            Element element = stepType.createElement();
             steps.addContent(element);
         });
     }
@@ -79,10 +81,14 @@ public class PdiSdkAdditionalData implements SdkAdditionalData {
                 .map(PdiSdkAdditionalData::stringUrl)
                 .collect(toList());
         Element steps = rootElement.getChild("steps");
-        Map<String, Step> stepsMap = steps.getChildren("step").stream()
-                .map(Step::new)
-                .collect(toMap(Step::getId, Function.identity()));
-        return new PdiSdkAdditionalData(stepsMap, createClassLoader(urls));
+        URLClassLoader classLoader = createClassLoader(urls);
+        Map<String, StepType> stepsMap = steps.getChildren("step").stream()
+                .map(element -> new StepType(element, path -> StepType.loadIcon(classLoader, path)))
+                .collect(toMap(StepType::getId, Function.identity()));
+        return new PdiSdkAdditionalData(stepsMap, classLoader);
     }
 
+    public Stream<StepType> getStepTypes() {
+        return stepTypes.values().stream().sorted(Comparator.comparing(StepType::getId));
+    }
 }

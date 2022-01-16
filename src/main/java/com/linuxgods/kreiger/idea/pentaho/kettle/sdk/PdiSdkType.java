@@ -31,6 +31,7 @@ import java.util.stream.Stream;
 
 import static com.linuxgods.kreiger.idea.pentaho.kettle.sdk.AnnotationsScanner.scanAnnotations;
 import static java.util.stream.Collectors.toList;
+import static org.apache.commons.lang.StringUtils.*;
 
 public class PdiSdkType extends SdkType {
     public final static PdiSdkType INSTANCE = new PdiSdkType();
@@ -67,27 +68,27 @@ public class PdiSdkType extends SdkType {
                 List<URL> urls = paths.stream()
                         .map(PdiSdkAdditionalData::pathUrl)
                         .collect(toList());
-                Map<String, Step> steps = new HashMap<>();
+                URLClassLoader classLoader = PdiSdkAdditionalData.createClassLoader(urls);
+                Map<String, StepType> steps = new HashMap<>();
                 for (int i = 0, pathsSize = paths.size(); i < pathsSize; i++) {
                     indicator.setFraction(i / (float) urls.size());
                     Path path = paths.get(i);
                     URL url = PdiSdkAdditionalData.pathUrl(path);
-                    Map<String, Step> urlSteps = new HashMap<>();
+                    Map<String, StepType> urlSteps = new HashMap<>();
                     scanAnnotations(url, (annotation, className) ->
-                            createStep(annotation, className)
-                                    .ifPresent(step -> urlSteps.put(step.getId(), step)));
-                    if (!urlSteps.isEmpty()) {
+                            createStepType(annotation, className, classLoader)
+                                    .ifPresent(stepType -> urlSteps.put(stepType.getId(), stepType)));
+                    //if (!urlSteps.isEmpty()) {
                         String pluginClassUrl = VfsUtil.getUrlForLibraryRoot(path.toFile());
                         modificator.addRoot(pluginClassUrl, OrderRootType.CLASSES);
                         steps.putAll(urlSteps);
-                    }
+                    //}
                 }
                 indicator.setFraction(1);
 
-                URLClassLoader classLoader = PdiSdkAdditionalData.createClassLoader(urls);
                 InputStream kettleStepsXml = classLoader.getResourceAsStream("kettle-steps.xml");
-                KettleIcons.loadStepsXml(kettleStepsXml)
-                        .forEach(step -> steps.put(step.getId(), step));
+                KettleIcons.loadStepsXml(kettleStepsXml, classLoader)
+                        .forEach(stepType -> steps.put(stepType.getId(), stepType));
                 modificator.setSdkAdditionalData(new PdiSdkAdditionalData(steps, classLoader));
                 modificator.commitChanges();
 
@@ -113,12 +114,17 @@ public class PdiSdkType extends SdkType {
         }
     }
 
-    private Optional<Step> createStep(Annotation annotation, String className) {
+    private Optional<StepType> createStepType(Annotation annotation, String className, URLClassLoader classLoader) {
+        if (!"org.pentaho.di.core.annotations.Step".equals(annotation.getTypeName())) {
+            return Optional.empty();
+        }
         Set<String> memberNames = annotation.getMemberNames();
         if (memberNames != null && memberNames.contains("id") && memberNames.contains("image")) {
             var id = ((StringMemberValue) annotation.getMemberValue("id")).getValue();
             var image = ((StringMemberValue) annotation.getMemberValue("image")).getValue();
-            return Optional.of(new Step(id, image, className));
+            if (isNotBlank(id) && isNotBlank(image)) {
+                return Optional.of(new StepType(id, image, className, path -> StepType.loadIcon(classLoader, path)));
+            }
         }
         return Optional.empty();
     }

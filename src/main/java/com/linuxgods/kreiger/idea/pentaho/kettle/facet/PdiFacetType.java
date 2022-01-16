@@ -62,7 +62,6 @@ public class PdiFacetType extends FacetType<PdiFacet, PdiFacetConfiguration> {
             application.runWriteAction(() -> {
                 LibraryTable libraryTable = LibraryTablesRegistrar.getInstance().getLibraryTable();
                 Library finalLibrary = addLibrary(libraryTable, sdk);
-                System.out.println(finalLibrary);
                 application.invokeLater(() -> application.runWriteAction(() -> {
                     if (!libraryExists(module, finalLibrary)) {
                         ModuleRootModificationUtil.addDependency(module, finalLibrary, RUNTIME, false);

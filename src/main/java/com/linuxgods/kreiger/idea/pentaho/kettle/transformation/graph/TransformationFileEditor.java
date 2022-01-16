@@ -12,6 +12,7 @@ import com.intellij.psi.NavigatablePsiElement;
 import com.intellij.ui.components.JBScrollPane;
 import com.linuxgods.kreiger.idea.pentaho.kettle.ImageUtil;
 import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacet;
+import com.linuxgods.kreiger.idea.pentaho.kettle.sdk.StepType;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Hop;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Transformation;
@@ -79,8 +80,8 @@ public class TransformationFileEditor implements FileEditor {
 
 
     @NotNull private StepComponent createStepComponent(PdiFacet facet, Step step) {
-        String type = step.getType().getValue();
-        Icon icon = facet.getIcon(type).orElse(ImageUtil.MISSING_ENTRY_ICON);
+        StepType type = step.getType().getValue();
+        Icon icon = null != type ? type.getIcon() : ImageUtil.MISSING_ENTRY_ICON;
         return new StepComponent(step, icon);
     }
 

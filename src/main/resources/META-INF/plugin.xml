@@ -5,15 +5,8 @@
     <vendor email="christoffer.hammarstrom@gmail.com">Christoffer Hammarström</vendor>
 
     <description><![CDATA[
-      Enter short description for your plugin here.<br>
-      <em>most HTML tags may be used</em>
+      Pentaho Data Integration (Kettle) plugin.
     ]]></description>
-
-    <change-notes><![CDATA[
-      Add change notes here.<br>
-      <em>most HTML tags may be used</em>
-    ]]>
-    </change-notes>
 
     <!-- please see https://plugins.jetbrains.com/docs/intellij/build-number-ranges.html for description -->
     <!-- idea-version since-build="173.0"/ -->
@@ -40,6 +33,8 @@
     <extensions defaultExtensionNs="com.intellij">
         <psi.referenceContributor language="JAVA"
                                   implementation="com.linuxgods.kreiger.idea.pentaho.kettle.JavaReferenceContributor" />
+        <psi.referenceContributor language="XML"
+                                  implementation="com.linuxgods.kreiger.idea.pentaho.kettle.XmlReferenceContributor" />
         <fileBasedIndex implementation="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.step.StepIndex" />
         <codeInsight.lineMarkerProvider language="PentahoKettleTransformation"
                                         implementationClass="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step$StepLineMarkerProvider" />

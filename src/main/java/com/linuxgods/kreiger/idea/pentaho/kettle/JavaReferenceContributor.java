@@ -6,9 +6,14 @@ import com.intellij.patterns.PsiElementPattern;
 import com.intellij.psi.*;
 import com.intellij.psi.filters.ElementFilter;
 import com.intellij.psi.filters.position.FilterPattern;
-import com.intellij.util.ProcessingContext;
-import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.step.StepIndex;
+import com.intellij.psi.xml.XmlTag;
+import com.intellij.psi.xml.XmlText;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.Arrays;
+import java.util.Optional;
+
+import static java.util.stream.Collectors.*;
 
 public class JavaReferenceContributor extends PsiReferenceContributor {
 
@@ -26,27 +31,23 @@ public class JavaReferenceContributor extends PsiReferenceContributor {
 
     @Override
     public void registerReferenceProviders(@NotNull PsiReferenceRegistrar registrar) {
-        registrar.registerReferenceProvider(JAVA_LITERAL, new StepReferenceProvider());
+        registrar.registerReferenceProvider(JAVA_LITERAL, new StepReferenceProvider(PsiElement::getResolveScope));
+        registrar.registerReferenceProvider(JAVA_LITERAL, new TransformationReferenceProvider());
     }
 
-    public static class StepReferenceProvider extends PsiReferenceProvider {
-        @Override
-        public PsiReference @NotNull [] getReferencesByElement(@NotNull PsiElement element, @NotNull ProcessingContext context) {
-            String stepName = null;
-            if (!(element instanceof PsiLiteralExpression)) {
-                return PsiReference.EMPTY_ARRAY;
-            }
-            PsiLiteralExpression literal = (PsiLiteralExpression) element;
-            Object value = literal.getValue();
+    static Optional<String> getLiteralString(PsiElement element) {
+        if (element instanceof PsiLiteralExpression) {
+            Object value = ((PsiLiteral) element).getValue();
             if (value instanceof String) {
-                stepName = (String)value;
+                return Optional.of((String) value);
             }
-            if (stepName == null) return PsiReference.EMPTY_ARRAY;
-
-            return StepIndex.findStepsByName(element.getProject(), stepName, element.getResolveScope())
-                    .map(step -> new PsiReferenceBase.Immediate<>(element, step.getFakePsiElement()))
-                    .toArray(PsiReference[]::new);
+            return Optional.empty();
+        } else if (element instanceof XmlTag) {
+            XmlTag xmlTag = (XmlTag) element;
+            String text = Arrays.stream(xmlTag.getValue().getTextElements()).map(XmlText::getValue).collect(joining());
+            return Optional.of(text);
         }
-
+        return Optional.empty();
     }
+
 }

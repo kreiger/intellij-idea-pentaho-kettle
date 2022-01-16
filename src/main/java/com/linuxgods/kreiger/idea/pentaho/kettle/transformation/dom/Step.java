@@ -5,6 +5,8 @@ import com.intellij.codeInsight.hints.*;
 import com.intellij.codeInsight.hints.presentation.InlayPresentation;
 import com.intellij.codeInsight.hints.presentation.PresentationFactory;
 import com.intellij.codeInsight.hints.presentation.SequencePresentation;
+import com.intellij.codeInsight.lookup.LookupElement;
+import com.intellij.codeInsight.lookup.LookupElementPresentation;
 import com.intellij.ide.IconProvider;
 import com.intellij.ide.presentation.PresentationProvider;
 import com.intellij.lang.Language;
@@ -25,8 +27,10 @@ import com.intellij.psi.xml.*;
 import com.intellij.util.xml.*;
 import com.intellij.util.xml.converters.PathReferenceConverter;
 import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacet;
+import com.linuxgods.kreiger.idea.pentaho.kettle.sdk.StepType;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.jetbrains.annotations.Nls;
+import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -35,7 +39,6 @@ import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.util.*;
 import java.util.List;
-import java.util.stream.Stream;
 
 import static com.intellij.patterns.PlatformPatterns.psiElement;
 import static com.intellij.patterns.XmlPatterns.xmlTag;
@@ -44,7 +47,6 @@ import static java.util.stream.Collectors.toList;
 
 public interface Step extends DomElement {
 
-    @NameValue
     default String getNameUntrimmed() {
         XmlTag xmlTag = getXmlTag();
         if (xmlTag == null) return null;
@@ -53,13 +55,14 @@ public interface Step extends DomElement {
         return StringEscapeUtils.unescapeXml(nameText);
     }
 
-
     @Required
+    @NameValue
     GenericDomValue<String> getName();
 
     @Required
-    @Referencing(value = StepTypeConverter.class, soft = true)
-    GenericDomValue<String> getType();
+    @Convert(StepTypeConverter.class)
+    @Referencing(value = StepTypeConverter.class)
+    GenericDomValue<StepType> getType();
 
     @Required
     GUI getGUI();
@@ -169,19 +172,10 @@ public interface Step extends DomElement {
 
         @NotNull
         private LineMarkerInfo<PsiElement> getPsiElementLineMarkerInfo(PsiElement element, String type, PdiFacet pdiFacet, Icon icon) {
-            List<NavigatablePsiElement> stepMetaClasses = pdiFacet.findStepMetaClasses(type, element.getResolveScope())
-                    .flatMap(psiClass -> Stream.<NavigatablePsiElement>concat(Stream.of(psiClass), getPublicMethods(psiClass, "getXML", "loadXML")))
+            List<NavigatablePsiElement> stepMetaClasses = pdiFacet.getTypePsiElements(type, element.getResolveScope())
                     .collect(toList());
             LineMarkerInfo<PsiElement> lineMarkerInfo = new LineMarkerInfo<>(element, element.getTextRange(), icon, null, new DefaultGutterIconNavigationHandler<>(stepMetaClasses, type), GutterIconRenderer.Alignment.RIGHT, () -> type);
             return NavigateAction.setNavigateAction(lineMarkerInfo, "Go To " + type, "GotoClass", icon);
-        }
-
-        @NotNull
-        private Stream<? extends PsiMethod> getPublicMethods(PsiClass psiClass, String... methodNames) {
-            Set<String> methodNamesSet = Set.of(methodNames);
-            return Arrays.stream(psiClass.getMethods())
-                    .filter(psiMethod -> psiMethod.hasModifierProperty(PsiModifier.PUBLIC))
-                    .filter(psiMethod -> methodNamesSet.contains(psiMethod.getName()));
         }
 
         @Override public @Nullable("null means disabled") @GutterName String getName() {
@@ -189,18 +183,45 @@ public interface Step extends DomElement {
         }
     }
 
-    class StepTypeConverter implements CustomReferenceConverter<String> {
-        @Override
-        public PsiReference @NotNull [] createReferences(GenericDomValue<String> value, PsiElement element, ConvertContext context) {
-            return new PsiPolyVariantReferenceBase[]{new PsiPolyVariantReferenceBase<>(element, element.getTextRange(), true) {
-                @Override public ResolveResult @NotNull [] multiResolve(boolean incompleteCode) {
-                    String type = value.getStringValue();
-                    return PdiFacet.getInstance(element).stream()
-                            .flatMap(pdiFacet -> pdiFacet.findStepMetaClasses(type, element.getResolveScope()))
-                            .map(PsiElementResolveResult::new)
-                            .toArray(ResolveResult[]::new);
+    class StepTypeConverter extends ResolvingConverter<StepType> implements CustomReferenceConverter<StepType> {
+        @Override public @NotNull Collection<? extends StepType> getVariants(ConvertContext context) {
+            return PdiFacet.getInstance(Objects.requireNonNull(context.getModule()))
+                    .stream()
+                    .flatMap(PdiFacet::getStepTypes)
+                    .collect(toList());
+        }
+
+        @Override public @Nullable LookupElement createLookupElement(StepType s) {
+            return new LookupElement() {
+                @Override public @NotNull String getLookupString() {
+                    return s.getId();
                 }
-            }};
+
+                @Override public void renderElement(LookupElementPresentation presentation) {
+                    presentation.setItemText(s.getId());
+                    presentation.setTypeText(s.getClassName());
+                    presentation.setIcon(s.getIcon());
+                }
+            };
+        }
+
+        @Override public @Nullable StepType fromString(@Nullable @NonNls String stepTypeId, ConvertContext context) {
+            return PdiFacet.getInstance(context.getModule())
+                    .flatMap(pdiFacet -> pdiFacet.getStepType(stepTypeId))
+                    .orElse(null);
+        }
+
+        @Override public @Nullable String toString(@Nullable StepType stepType, ConvertContext context) {
+            return null == stepType ? null : stepType.getId();
+        }
+
+        @Override
+        public PsiReference @NotNull [] createReferences(GenericDomValue<StepType> value, PsiElement element, ConvertContext context) {
+            return PdiFacet.getInstance(element)
+                    .map(pdiFacet -> pdiFacet.getTypePsiElements(value.getStringValue(), element.getResolveScope())
+                            .map(psiElement -> new PsiReferenceBase.Immediate<>(element, psiElement))
+                            .toArray(PsiReference[]::new))
+                    .orElse(PsiReference.EMPTY_ARRAY);
         }
     }
 
@@ -265,7 +286,7 @@ public interface Step extends DomElement {
                             int startOffset = document.getLineStartOffset(line);
                             int column = offset - startOffset;
                             PresentationFactory factory = this.getFactory();
-                            InlayPresentation text = factory.text(from.getType().getStringValue()+": "+from.getNameUntrimmed() + " \u27F6");
+                            InlayPresentation text = factory.text(from.getType().getStringValue() + ": " + from.getNameUntrimmed() + " \u27F6");
                             InlayPresentation mouseHandling = factory.mouseHandling(text, (mouseEvent, point) -> ((NavigatablePsiElement) from.getXmlTag()).navigate(true), hoverListener);
                             InlayPresentation inlayPresentation = new SequencePresentation(List.of(factory.textSpacePlaceholder(column, false), mouseHandling));
                             sink.addBlockElement(offset, false, true, BlockInlayPriority.CODE_VISION, inlayPresentation);
@@ -279,8 +300,8 @@ public interface Step extends DomElement {
                             int nextLine = line + 1;
                             int nextLineStartOffset = document.getLineStartOffset(nextLine);
                             PresentationFactory factory = this.getFactory();
-                            InlayPresentation text = factory.text("\u27F6 " + to.getType().getStringValue()+": "+to.getNameUntrimmed());
-                            InlayPresentation mouseHandling = factory.mouseHandling(text, (mouseEvent, point) -> ((NavigatablePsiElement)to.getXmlTag()).navigate(true), hoverListener);
+                            InlayPresentation text = factory.text("\u27F6 " + to.getType().getStringValue() + ": " + to.getNameUntrimmed());
+                            InlayPresentation mouseHandling = factory.mouseHandling(text, (mouseEvent, point) -> ((NavigatablePsiElement) to.getXmlTag()).navigate(true), hoverListener);
                             InlayPresentation inlayPresentation = new SequencePresentation(List.of(factory.textSpacePlaceholder(column, false), mouseHandling));
                             sink.addBlockElement(nextLineStartOffset, true, true, BlockInlayPriority.CODE_VISION, inlayPresentation);
                         }
