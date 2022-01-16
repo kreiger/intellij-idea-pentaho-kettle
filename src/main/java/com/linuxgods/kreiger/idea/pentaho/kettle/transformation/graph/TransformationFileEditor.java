@@ -14,10 +14,12 @@ import com.linuxgods.kreiger.idea.pentaho.kettle.ImageUtil;
 import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacet;
 import com.linuxgods.kreiger.idea.pentaho.kettle.sdk.StepType;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Hop;
+import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Notepad;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Transformation;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.components.ArrowComponent;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.components.GoToStepListener;
+import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.components.NotepadComponent;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.components.StepComponent;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NonNls;
@@ -74,6 +76,9 @@ public class TransformationFileEditor implements FileEditor {
             if (from != null && to != null) {
                 graphViewComponent.add(new ArrowComponent(stepComponents.get(from), stepComponents.get(to)));
             }
+        }
+        for (Notepad notepad : transformation.getNotepads().getNotepads()) {
+            graphViewComponent.add(new NotepadComponent(notepad));
         }
 
     }
