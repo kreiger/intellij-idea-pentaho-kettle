@@ -14,11 +14,13 @@ public class StepComponent extends JLabel {
         setVerticalTextPosition(JLabel.BOTTOM);
         setHorizontalTextPosition(JLabel.CENTER);
         Dimension preferredSize = getPreferredSize();
-        setBounds(step.getX(), step.getY(), preferredSize.width, preferredSize.height);
+
+        int x = step.getX() - preferredSize.width / 2 + getIcon().getIconWidth() / 2;
+        setBounds(x, step.getY(), preferredSize.width, preferredSize.height);
     }
 
     Point getIconCenter() {
-        return new Point(getX() + getWidth() / 2, 1+getY() + getIcon().getIconHeight() / 2);
+        return new Point(getX() + getWidth() / 2, getY() + getIcon().getIconHeight() / 2);
     }
 
     public Step getStep() {

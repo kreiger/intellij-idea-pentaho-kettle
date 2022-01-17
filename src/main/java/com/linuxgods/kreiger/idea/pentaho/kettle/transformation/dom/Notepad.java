@@ -5,9 +5,9 @@ import com.intellij.util.xml.GenericDomValue;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.Optional;
+import java.util.Objects;
+
+import static java.util.Objects.requireNonNullElse;
 
 public interface Notepad extends GUI {
 
@@ -30,6 +30,8 @@ public interface Notepad extends GUI {
     GenericDomValue<String> getFontname();
 
     GenericDomValue<Integer> getFontsize();
+    GenericDomValue<String> getFontbold();
+    GenericDomValue<String> getFontitalic();
 
     default Color getBackgroundColor() {
         try {
@@ -49,15 +51,19 @@ public interface Notepad extends GUI {
 
     @NotNull default Rectangle getBounds() {
         return new Rectangle(getXloc().getValue(), getYloc().getValue(),
-                (int) (getWidth().getValue()*1.5), (int) (getHeigth().getValue()*1.5));
+                (int) (getWidth().getValue()), (int) (getHeigth().getValue()));
     }
 
     default Font getFont() {
-        try {
-            return new Font(getFontname().getValue(), Font.PLAIN, (int) (getFontsize().getValue()*1.5));
-        } catch (NullPointerException e) {
-            return new Font("Cantarell", Font.PLAIN, 16);
-        }
+        String fontName = requireNonNullElse(getFontname().getValue(), Font.DIALOG_INPUT);
+        int fontStyle = Font.PLAIN
+                | ("Y".equals(getFontbold().getValue()) ? Font.BOLD : 0)
+                | ("Y".equals(getFontitalic().getValue()) ? Font.ITALIC : 0) ;
+        int fontSize = requireNonNullElse(getFontsize().getValue(), 11);
+        if (fontSize <= 0) fontSize = 11;
+        Font font = new Font(fontName, fontStyle, (int) (fontSize*1.5));
+        System.out.println("Font: "+font);
+        return font;
     }
 
     interface Note extends DomElement {
