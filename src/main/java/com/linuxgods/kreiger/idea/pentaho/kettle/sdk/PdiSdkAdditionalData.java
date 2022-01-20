@@ -34,10 +34,12 @@ public class PdiSdkAdditionalData implements SdkAdditionalData {
     }
 
     @NotNull public static URLClassLoader createClassLoader(List<URL> urls) {
-        return new URLClassLoader(urls.toArray(new URL[0]), PdiSdkAdditionalData.class.getClassLoader());
+        return new URLClassLoader(urls.toArray(new URL[0]), null);
     }
 
-
+    public Class<?> loadClass(String className) throws ClassNotFoundException {
+        return classLoader.loadClass(className);
+    }
 
     @NotNull static URL pathUrl(Path path) {
         try {

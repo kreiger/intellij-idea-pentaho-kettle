@@ -18,6 +18,8 @@ import org.jetbrains.annotations.NotNull;
 import javax.swing.*;
 import java.awt.Image;
 import java.awt.Color;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.*;
 
 import java.util.stream.Stream;
@@ -66,7 +68,7 @@ public class PdiFacet extends Facet<PdiFacetConfiguration> {
     }
 
     public Stream<PsiClass> findStepMetaClasses(String type, @NotNull GlobalSearchScope resolveScope) {
-        return getClassName(type)
+        return getStepTypeClassName(type)
                 .stream()
                 .flatMap(className -> {
                     JavaPsiFacade javaPsiFacade = JavaPsiFacade.getInstance(getModule().getProject());
@@ -74,7 +76,7 @@ public class PdiFacet extends Facet<PdiFacetConfiguration> {
                 });
     }
 
-    @NotNull public Optional<String> getClassName(String type) {
+    @NotNull public Optional<String> getStepTypeClassName(String type) {
         return getStepType(type)
                 .map(StepType::getClassName);
     }
@@ -102,4 +104,21 @@ public class PdiFacet extends Facet<PdiFacetConfiguration> {
                 .flatMap(psiClass -> Stream.<NavigatablePsiElement>concat(Stream.of(psiClass), getPublicMethods(psiClass, "getXML", "loadXML")));
     }
 
+    public Class<?> loadClass(String className) throws ClassNotFoundException {
+        Optional<PdiSdkAdditionalData> sdkAdditionalData = getSdkAdditionalData();
+        if (sdkAdditionalData.isPresent()) {
+            return sdkAdditionalData.get().loadClass(className);
+        }
+        throw new ClassNotFoundException();
+    }
+
+    public synchronized void initializeKettleEnvironment() throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+        Class<?> kettleClientEnvironmentClass = loadClass("org.pentaho.di.core.KettleClientEnvironment");
+        Method isInitializedMethod = kettleClientEnvironmentClass.getMethod("isInitialized");
+        Method initMethod = kettleClientEnvironmentClass.getMethod("init");
+        boolean initialized = (boolean)isInitializedMethod.invoke(null);
+        if (!initialized) {
+            initMethod.invoke(null);
+        }
+    }
 }

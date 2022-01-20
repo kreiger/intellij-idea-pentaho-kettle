@@ -287,7 +287,7 @@ public class TransformationFoldingBuilder extends FoldingBuilderEx implements Du
 
             private void visitStep(XmlTag xmlTag) {
                 String type = requireNonNullElse(xmlTag.getSubTagText("type"), "?");
-                String typeClass = pdiFacet.flatMap(facet -> facet.getClassName(type))
+                String typeClass = pdiFacet.flatMap(facet -> facet.getStepTypeClassName(type))
                         .map(className -> StringUtils.substringAfterLast(className, "."))
                         .orElse(type);
                 foldSubTags(xmlTag, new Function<>() {

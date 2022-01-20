@@ -107,8 +107,8 @@ public class PdiSdkType extends SdkType {
     @NotNull private Stream<Path> getLibJars(Path kettleHome) {
         try {
             Path libDir = kettleHome.resolve("lib");
-            PathMatcher pathMatcher = libDir.getFileSystem().getPathMatcher("glob:**/kettle-{engine,ui-swt}-*.jar");
-            return Files.list(libDir).filter(pathMatcher::matches);
+            //PathMatcher pathMatcher = libDir.getFileSystem().getPathMatcher("glob:**/kettle-{engine,ui-swt}-*.jar");
+            return Files.list(libDir); //.filter(pathMatcher::matches);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
