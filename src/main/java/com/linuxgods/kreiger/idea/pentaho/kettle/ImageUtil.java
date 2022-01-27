@@ -1,5 +1,6 @@
 package com.linuxgods.kreiger.idea.pentaho.kettle;
 
+import com.intellij.ui.JBColor;
 import com.intellij.ui.scale.ScaleContext;
 import com.intellij.util.ImageLoader;
 import org.jetbrains.annotations.NotNull;
@@ -7,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.net.URL;
 
 import static java.awt.image.BufferedImage.TYPE_INT_RGB;
 
@@ -38,4 +40,15 @@ public class ImageUtil {
         return drawOnBackground(Color.RED, 0.2f, image);
     }
 
+    @NotNull public static Image graphImage(Image image) {
+        return drawOnBackground(Color.WHITE, 1, image);
+    }
+
+    @NotNull public static ImageIcon graphIcon(Image image) {
+        return new ImageIcon(graphImage(image));
+    }
+
+    @NotNull public static ImageIcon graphIcon(URL resource) {
+        return graphIcon(ImageLoader.loadFromUrl(resource));
+    }
 }

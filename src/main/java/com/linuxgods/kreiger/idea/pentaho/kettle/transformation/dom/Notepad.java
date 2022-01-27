@@ -9,13 +9,13 @@ import java.util.Objects;
 
 import static java.util.Objects.requireNonNullElse;
 
-public interface Notepad extends GUI {
+public interface Notepad extends DomElement {
 
     Color DEFAULT_NOTEPAD_BACKGROUND_COLOR = new Color(0xFF, 0xCD, 0x70);
 
     Note getNote();
-    Coordinate getXloc();
-    Coordinate getYloc();
+    GenericDomValue<Integer> getXloc();
+    GenericDomValue<Integer> getYloc();
     GenericDomValue<Integer> getWidth();
     GenericDomValue<Integer> getHeigth(); // sic
 
@@ -55,13 +55,13 @@ public interface Notepad extends GUI {
     }
 
     default Font getFont() {
-        String fontName = requireNonNullElse(getFontname().getValue(), Font.DIALOG_INPUT);
+        String fontName = requireNonNullElse(getFontname().getValue(), Font.SANS_SERIF);
         int fontStyle = Font.PLAIN
                 | ("Y".equals(getFontbold().getValue()) ? Font.BOLD : 0)
                 | ("Y".equals(getFontitalic().getValue()) ? Font.ITALIC : 0) ;
         int fontSize = requireNonNullElse(getFontsize().getValue(), 11);
         if (fontSize <= 0) fontSize = 11;
-        Font font = new Font(fontName, fontStyle, (int) (fontSize*1.5));
+        Font font = new Font(fontName, fontStyle, (int) (fontSize));
         System.out.println("Font: "+font);
         return font;
     }

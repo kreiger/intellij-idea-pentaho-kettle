@@ -31,11 +31,11 @@
     </applicationListeners>
 
     <extensions defaultExtensionNs="com.intellij">
-        <localInspection language="PentahoKettleTransformation"
+        <!-- localInspection language="PentahoKettleTransformation"
                          implementationClass="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.TransformationInspection"
                          enabledByDefault="true"
                          displayName="Transformation"
-                         groupName="Transformation issues"/>
+                         groupName="Transformation issues"/ -->
         <psi.referenceContributor language="JAVA"
                                   implementation="com.linuxgods.kreiger.idea.pentaho.kettle.JavaReferenceContributor"/>
         <psi.referenceContributor language="XML"
@@ -58,7 +58,7 @@
                 language="PentahoKettleTransformation"
                 implementationClass="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.TransformationParserDefinition"/>
         <fileEditorProvider
-                implementation="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.TransformationFileEditorProvider"/>
+                implementation="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.TransformationFileEditorProvider"/>
         <multiHostInjector implementation="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.SqlInjector"/>
         <dom.fileMetaData
                 domVersion="1"
@@ -76,6 +76,14 @@
         <lang.parserDefinition
                 language="PentahoKettleJob"
                 implementationClass="com.linuxgods.kreiger.idea.pentaho.kettle.job.JobParserDefinition"/>
+        <dom.fileMetaData
+                domVersion="1"
+                implementation="com.linuxgods.kreiger.idea.pentaho.kettle.job.dom.JobDomFileDescription"
+                rootTagName="job"
+        />
+        <fileEditorProvider
+                implementation="com.linuxgods.kreiger.idea.pentaho.kettle.job.JobFileEditorProvider"/>
+
 
         <sdkType implementation="com.linuxgods.kreiger.idea.pentaho.kettle.sdk.PdiSdkType"/>
         <facetType implementation="com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacetType"/>
@@ -90,7 +98,7 @@
         <group id="PentahoKettleTransformationPopupGroup"/>
         <action id="OpenInSpoonAction"
                 class="com.linuxgods.kreiger.idea.pentaho.kettle.spoon.OpenInSpoonAction"
-                icon="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.KettleIcons.KETTLE_ICON"
+                icon="com.linuxgods.kreiger.idea.pentaho.kettle.KettleIcons.KETTLE_ICON"
                 text="Spoon">
             <add-to-group group-id="RevealGroup" anchor="first"/>
             <add-to-group group-id="PentahoKettleTransformationPopupGroup" anchor="first"/>
@@ -98,7 +106,7 @@
         </action>
 
         <action id="GraphZoomLabel"
-                class="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.GraphZoomLabel"/>
+                class="com.linuxgods.kreiger.idea.pentaho.kettle.graph.GraphZoomLabel"/>
         <group id="PentahoKettleTransformationGraphToolbar">
             <reference ref="OpenInSpoonAction"/>
             <!-- reference ref="GraphZoomLabel"/ -->

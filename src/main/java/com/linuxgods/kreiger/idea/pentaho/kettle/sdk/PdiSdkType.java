@@ -6,7 +6,7 @@ import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.projectRoots.*;
 import com.intellij.openapi.roots.OrderRootType;
 import com.intellij.openapi.vfs.VfsUtil;
-import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.KettleIcons;
+import com.linuxgods.kreiger.idea.pentaho.kettle.KettleIcons;
 import javassist.bytecode.annotation.Annotation;
 import javassist.bytecode.annotation.StringMemberValue;
 import org.jdom.Element;
@@ -69,7 +69,7 @@ public class PdiSdkType extends SdkType {
                         .map(PdiSdkAdditionalData::pathUrl)
                         .collect(toList());
                 URLClassLoader classLoader = PdiSdkAdditionalData.createClassLoader(urls);
-                Map<String, StepType> steps = new HashMap<>();
+                Map<String, StepType> stepTypes = new HashMap<>();
                 for (int i = 0, pathsSize = paths.size(); i < pathsSize; i++) {
                     indicator.setFraction(i / (float) urls.size());
                     Path path = paths.get(i);
@@ -87,15 +87,21 @@ public class PdiSdkType extends SdkType {
                     //if (!urlSteps.isEmpty()) {
                         String pluginClassUrl = VfsUtil.getUrlForLibraryRoot(path.toFile());
                         modificator.addRoot(pluginClassUrl, OrderRootType.CLASSES);
-                        steps.putAll(urlSteps);
+                        stepTypes.putAll(urlSteps);
                     //}
                 }
                 indicator.setFraction(1);
 
-                InputStream kettleStepsXml = classLoader.getResourceAsStream("kettle-steps.xml");
-                KettleIcons.loadStepsXml(kettleStepsXml, classLoader)
-                        .forEach(stepType -> steps.put(stepType.getId(), stepType));
-                modificator.setSdkAdditionalData(new PdiSdkAdditionalData(steps, classLoader));
+                InputStream kettleStepsTypesXml = classLoader.getResourceAsStream("kettle-steps.xml");
+                KettleIcons.loadStepsXml(kettleStepsTypesXml, classLoader)
+                        .forEach(stepType -> stepTypes.put(stepType.getId(), stepType));
+
+                Map<String, JobEntryType> jobEntryTypes = new HashMap<>();
+                InputStream kettleJobEntryTypesXml = classLoader.getResourceAsStream("kettle-job-entries.xml");
+                KettleIcons.loadJobEntriesXml(kettleJobEntryTypesXml, classLoader)
+                        .forEach(jobEntryType -> jobEntryTypes.put(jobEntryType.getId(), jobEntryType));
+
+                modificator.setSdkAdditionalData(new PdiSdkAdditionalData(stepTypes, jobEntryTypes, classLoader));
                 modificator.commitChanges();
 
                 return true;

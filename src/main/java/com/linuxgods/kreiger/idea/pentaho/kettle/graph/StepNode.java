@@ -1,4 +1,4 @@
-package com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph;
+package com.linuxgods.kreiger.idea.pentaho.kettle.graph;
 
 import com.linuxgods.kreiger.idea.pentaho.kettle.ImageUtil;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step;

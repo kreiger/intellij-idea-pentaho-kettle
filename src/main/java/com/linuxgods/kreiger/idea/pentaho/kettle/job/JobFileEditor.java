@@ -1,4 +1,4 @@
-package com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph;
+package com.linuxgods.kreiger.idea.pentaho.kettle.job;
 
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
@@ -11,11 +11,12 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.NavigatablePsiElement;
 import com.intellij.ui.components.JBScrollPane;
 import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacet;
-import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Hop;
-import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Notepad;
-import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step;
-import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Transformation;
-import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.components.*;
+import com.linuxgods.kreiger.idea.pentaho.kettle.graph.components.ArrowComponent;
+import com.linuxgods.kreiger.idea.pentaho.kettle.graph.components.GoToStepListener;
+import com.linuxgods.kreiger.idea.pentaho.kettle.graph.components.NodeComponent;
+import com.linuxgods.kreiger.idea.pentaho.kettle.job.dom.Entry;
+import com.linuxgods.kreiger.idea.pentaho.kettle.job.dom.Hop;
+import com.linuxgods.kreiger.idea.pentaho.kettle.job.dom.Job;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
@@ -33,54 +34,56 @@ import static java.awt.RenderingHints.VALUE_ANTIALIAS_ON;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
-public class TransformationFileEditor implements FileEditor {
-    public static final Logger LOGGER = LoggerFactory.getLogger(TransformationFileEditor.class);
+public class JobFileEditor implements FileEditor {
+    public static final Logger LOGGER = LoggerFactory.getLogger(JobFileEditor.class);
     private final GraphComponent graphComponent;
     private final VirtualFile file;
 
-    public TransformationFileEditor(Project project, @NotNull VirtualFile file, PdiFacet pdiFacet) {
+    public JobFileEditor(Project project, @NotNull VirtualFile file, PdiFacet pdiFacet) {
         this.file = file;
         this.graphComponent = new GraphComponent(file);
         JComponent graphViewComponent = graphComponent.getView();
-        Transformation transformation = Transformation.getTransformation(project, file);
-        createGraph(graphViewComponent, transformation, pdiFacet);
+        @NotNull Job job = Job.getJob(project, file);
+        createGraph(graphViewComponent, job, pdiFacet);
 
-        transformation.getManager().addDomEventListener(event -> {
+        job.getManager().addDomEventListener(event -> {
                 LOGGER.warn("Document changed");
                 graphViewComponent.removeAll();
                 graphComponent.repaint();
-                createGraph(graphViewComponent, transformation, pdiFacet);
+                createGraph(graphViewComponent, job, pdiFacet);
                 graphComponent.revalidate();
                 graphComponent.repaint();
             }, this);
     }
 
-    private void createGraph(JComponent graphViewComponent, Transformation transformation, PdiFacet pdiFacet) {
-        Map<Step, NodeComponent<Step>> stepComponents = transformation.getSteps().stream()
-                .collect(toMap(identity(), step -> createStepComponent(pdiFacet, step)));
-        for (NodeComponent<Step> nodeComponent : stepComponents.values()) {
+    private void createGraph(JComponent graphViewComponent, Job job, PdiFacet pdiFacet) {
+        Map<Entry, NodeComponent<Entry>> entryComponents = job.getEntries().getEntries().stream()
+                .filter(Entry::isDraw)
+                .collect(toMap(identity(), entry -> createEntryComponent(pdiFacet, entry)));
+        for (NodeComponent<Entry> nodeComponent : entryComponents.values()) {
             nodeComponent.addMouseListener(new GoToStepListener(() -> {
                 ((NavigatablePsiElement) nodeComponent.getNode().getValue().getXmlTag()).navigate(true);
             }));
             graphViewComponent.add(nodeComponent);
 
         }
-        for (Hop hop : transformation.getOrder().getHops()) {
-            Step from = hop.getFrom().getValue();
-            Step to = hop.getTo().getValue();
+        for (Hop hop : job.getHops().getHops()) {
+            Entry from = hop.getFrom().getValue();
+            Entry to = hop.getTo().getValue();
             if (from != null && to != null) {
-                graphViewComponent.add(new ArrowComponent(stepComponents.get(from), stepComponents.get(to)));
+                graphViewComponent.add(new ArrowComponent(entryComponents.get(from), entryComponents.get(to)));
             }
         }
-        for (Notepad notepad : transformation.getNotepads().getNotepads()) {
+        /*
+        for (Notepad notepad : job.getNotepads().getNotepads()) {
             graphViewComponent.add(new NotepadComponent(notepad));
         }
-
+        */
     }
 
 
-    @NotNull private NodeComponent<Step> createStepComponent(PdiFacet facet, Step step) {
-        return new NodeComponent(new StepNode(step));
+    @NotNull private NodeComponent<Entry> createEntryComponent(PdiFacet facet, Entry entry) {
+        return new NodeComponent<>(new EntryNode(entry));
     }
 
     @Override public @Nullable VirtualFile getFile() {

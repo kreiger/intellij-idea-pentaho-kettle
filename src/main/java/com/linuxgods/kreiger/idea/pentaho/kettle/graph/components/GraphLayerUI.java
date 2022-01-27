@@ -1,4 +1,4 @@
-package com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.components;
+package com.linuxgods.kreiger.idea.pentaho.kettle.graph.components;
 
 import javax.swing.*;
 import javax.swing.plaf.LayerUI;

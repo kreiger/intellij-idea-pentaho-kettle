@@ -1,7 +1,8 @@
-package com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph;
+package com.linuxgods.kreiger.idea.pentaho.kettle;
 
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.IconManager;
+import com.linuxgods.kreiger.idea.pentaho.kettle.sdk.JobEntryType;
 import com.linuxgods.kreiger.idea.pentaho.kettle.sdk.StepType;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Document;
@@ -24,6 +25,10 @@ import java.util.stream.Stream;
 public class KettleIcons {
     public static final @NotNull Logger LOGGER = Logger.getInstance(KettleIcons.class);
     public static final @NotNull Icon KETTLE_ICON = IconManager.getInstance().getIcon("/ui/images/kettle_logo_small.svg", KettleIcons.class);
+    // FIXME Get from SDK
+    public static final @NotNull Icon START_ICON = ImageUtil.graphIcon(KettleIcons.class.getResource("/ui/images/STR.svg"));
+    // FIXME Get from SDK
+    public static final @NotNull Icon DUMMY_ICON = ImageUtil.graphIcon(KettleIcons.class.getResource("/ui/images/DUM.svg"));
 
     public static Stream<StepType> loadStepsXml(InputStream resourceAsStream, URLClassLoader classLoader) {
         Document document = parseXmlResource(resourceAsStream);
@@ -34,6 +39,18 @@ public class KettleIcons {
                     String iconPath = getIconPath(element);
                     String[] ids = element.getAttribute("id").split(",");
                     return Stream.of(ids).map(id -> new StepType(id, iconPath, className, path -> StepType.loadIcon(classLoader, path)));
+                });
+    }
+
+    public static Stream<JobEntryType> loadJobEntriesXml(InputStream resourceAsStream, URLClassLoader classLoader) {
+        Document document = parseXmlResource(resourceAsStream);
+        NodeList stepsElement = document.getElementsByTagName("job-entry");
+        return asList(stepsElement).stream()
+                .flatMap(element -> {
+                    String className = getSubTagText(element, "classname");
+                    String iconPath = getIconPath(element);
+                    String[] ids = element.getAttribute("id").split(",");
+                    return Stream.of(ids).map(id -> new JobEntryType(id, iconPath, className, jobEntryType -> JobEntryType.loadIcon(classLoader, jobEntryType)));
                 });
     }
 

@@ -1,4 +1,4 @@
-package com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph;
+package com.linuxgods.kreiger.idea.pentaho.kettle.graph;
 
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.ex.ToolbarLabelAction;

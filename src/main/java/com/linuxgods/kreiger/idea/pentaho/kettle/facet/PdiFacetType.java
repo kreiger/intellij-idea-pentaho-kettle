@@ -15,7 +15,7 @@ import com.intellij.openapi.roots.libraries.LibraryTable;
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar;
 import com.intellij.openapi.util.NlsSafe;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.KettleIcons;
+import com.linuxgods.kreiger.idea.pentaho.kettle.KettleIcons;
 import com.linuxgods.kreiger.idea.pentaho.kettle.sdk.PdiSdkType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

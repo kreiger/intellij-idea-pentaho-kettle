@@ -1,4 +1,4 @@
-package com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.components;
+package com.linuxgods.kreiger.idea.pentaho.kettle.graph.components;
 
 import com.intellij.ui.JBColor;
 import com.intellij.util.ui.GeometryUtil;

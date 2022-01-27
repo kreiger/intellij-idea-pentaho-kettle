@@ -1,4 +1,4 @@
-package com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph;
+package com.linuxgods.kreiger.idea.pentaho.kettle.graph;
 
 import javax.swing.*;
 

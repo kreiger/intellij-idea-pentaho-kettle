@@ -1,7 +1,6 @@
-package com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.components;
+package com.linuxgods.kreiger.idea.pentaho.kettle.graph.components;
 
 import java.awt.*;
-import java.awt.event.InputEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 

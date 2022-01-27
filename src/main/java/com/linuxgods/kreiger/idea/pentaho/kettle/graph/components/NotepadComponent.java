@@ -1,4 +1,4 @@
-package com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.components;
+package com.linuxgods.kreiger.idea.pentaho.kettle.graph.components;
 
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Notepad;
 import org.apache.commons.lang3.StringUtils;

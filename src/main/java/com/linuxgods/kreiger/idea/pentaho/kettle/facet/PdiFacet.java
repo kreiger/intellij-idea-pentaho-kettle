@@ -11,6 +11,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.linuxgods.kreiger.idea.pentaho.kettle.ImageUtil;
+import com.linuxgods.kreiger.idea.pentaho.kettle.sdk.JobEntryType;
 import com.linuxgods.kreiger.idea.pentaho.kettle.sdk.PdiSdkAdditionalData;
 import com.linuxgods.kreiger.idea.pentaho.kettle.sdk.StepType;
 import org.jetbrains.annotations.NotNull;
@@ -50,12 +51,6 @@ public class PdiFacet extends Facet<PdiFacetConfiguration> {
         return Arrays.stream(psiClass.getMethods())
                 .filter(psiMethod -> psiMethod.hasModifierProperty(PsiModifier.PUBLIC))
                 .filter(psiMethod -> methodNamesSet.contains(psiMethod.getName()));
-    }
-
-    public Optional<Image> getImage(String id) {
-        return getSdkAdditionalData()
-                .flatMap(sdkAdditionalData -> sdkAdditionalData.getImage(id))
-                .map(image -> ImageUtil.drawOnBackground(Color.LIGHT_GRAY, 1, image));
     }
 
     @NotNull public Optional<PdiSdkAdditionalData> getSdkAdditionalData() {
@@ -120,5 +115,10 @@ public class PdiFacet extends Facet<PdiFacetConfiguration> {
         if (!initialized) {
             initMethod.invoke(null);
         }
+    }
+
+    @NotNull public Optional<JobEntryType> getJobEntryType(String type) {
+        return getSdkAdditionalData()
+                .flatMap(sdkAdditionalData -> sdkAdditionalData.getJobEntryType(type));
     }
 }

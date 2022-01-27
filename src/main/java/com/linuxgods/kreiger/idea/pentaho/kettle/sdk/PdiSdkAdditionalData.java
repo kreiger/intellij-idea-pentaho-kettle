@@ -27,10 +27,12 @@ import static java.util.stream.Collectors.toMap;
 public class PdiSdkAdditionalData implements SdkAdditionalData {
     private final ClassLoader classLoader;
     private final Map<String, StepType> stepTypes;
+    private final Map<String, JobEntryType> jobEntryTypes;
 
-    public PdiSdkAdditionalData(Map<String, StepType> stepTypes, @NotNull URLClassLoader classLoader) {
+    public PdiSdkAdditionalData(Map<String, StepType> stepTypes, Map<String, JobEntryType> jobEntryTypes, @NotNull URLClassLoader classLoader) {
         this.classLoader = classLoader;
         this.stepTypes = stepTypes;
+        this.jobEntryTypes = jobEntryTypes;
     }
 
     @NotNull public static URLClassLoader createClassLoader(List<URL> urls) {
@@ -76,21 +78,37 @@ public class PdiSdkAdditionalData implements SdkAdditionalData {
             Element element = stepType.createElement();
             steps.addContent(element);
         });
+
+        Element jobEntries = new Element("job-entries");
+        rootElement.addContent(jobEntries);
+        this.jobEntryTypes.forEach((id, jobEntryType) -> {
+            Element element = jobEntryType.createElement();
+            jobEntries.addContent(element);
+        });
     }
 
     public static SdkAdditionalData load(@NotNull Sdk sdk, Element rootElement) {
         List<URL> urls = Stream.of(sdk.getRootProvider().getUrls(OrderRootType.CLASSES))
                 .map(PdiSdkAdditionalData::stringUrl)
                 .collect(toList());
-        Element steps = rootElement.getChild("steps");
         URLClassLoader classLoader = createClassLoader(urls);
-        Map<String, StepType> stepsMap = steps.getChildren("step").stream()
+        Element steps = rootElement.getChild("steps");
+        Map<String, StepType> stepTypes = steps.getChildren("step").stream()
                 .map(element -> new StepType(element, path -> StepType.loadIcon(classLoader, path)))
                 .collect(toMap(StepType::getId, Function.identity()));
-        return new PdiSdkAdditionalData(stepsMap, classLoader);
+        Element jobEntries = rootElement.getChild("job-entries");
+        Map<String, JobEntryType> jobEntryTypes = jobEntries.getChildren("job-entry").stream()
+                .map(element -> new JobEntryType(element, jobEntryType -> JobEntryType.loadIcon(classLoader, jobEntryType)))
+                .collect(toMap(JobEntryType::getId, Function.identity()));
+
+        return new PdiSdkAdditionalData(stepTypes, jobEntryTypes, classLoader);
     }
 
     public Stream<StepType> getStepTypes() {
         return stepTypes.values().stream().sorted(Comparator.comparing(StepType::getId));
+    }
+
+    @NotNull public Optional<JobEntryType> getJobEntryType(String id) {
+        return Optional.ofNullable(jobEntryTypes.get(id));
     }
 }

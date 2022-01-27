@@ -1,6 +1,6 @@
-package com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.components;
+package com.linuxgods.kreiger.idea.pentaho.kettle.graph.components;
 
-import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.Node;
+import com.linuxgods.kreiger.idea.pentaho.kettle.graph.Node;
 
 import javax.swing.*;
 import java.awt.*;
