@@ -19,13 +19,13 @@ configurations {
 dependencies {
   def pentahoKettleVersion = '8.3.0.0-371'
   //def pentahoKettleVersion = '9.2.0.0-290'
-  implementation('pentaho:metastore:' + pentahoKettleVersion) {
+  testImplementation('pentaho:metastore:' + pentahoKettleVersion) {
     exclude group: '*'
   }
-  implementation('pentaho-kettle:kettle-core:' + pentahoKettleVersion) {
+  testImplementation('pentaho-kettle:kettle-core:' + pentahoKettleVersion) {
     exclude group: '*'
   }
-  implementation('pentaho-kettle:kettle-engine:' + pentahoKettleVersion) {
+  testImplementation('pentaho-kettle:kettle-engine:' + pentahoKettleVersion) {
     exclude group: '*'
     /*
     exclude group: 'cglib'

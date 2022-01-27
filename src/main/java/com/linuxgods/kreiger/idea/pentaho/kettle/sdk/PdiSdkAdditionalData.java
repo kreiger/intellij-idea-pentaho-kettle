@@ -34,7 +34,7 @@ public class PdiSdkAdditionalData implements SdkAdditionalData {
     }
 
     @NotNull public static URLClassLoader createClassLoader(List<URL> urls) {
-        return new URLClassLoader(urls.toArray(new URL[0]), null);
+        return new URLClassLoader(urls.toArray(new URL[0]), ClassLoader.getPlatformClassLoader());
     }
 
     public Class<?> loadClass(String className) throws ClassNotFoundException {

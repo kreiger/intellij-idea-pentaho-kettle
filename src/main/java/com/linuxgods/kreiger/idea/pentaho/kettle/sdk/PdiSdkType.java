@@ -77,7 +77,13 @@ public class PdiSdkType extends SdkType {
                     Map<String, StepType> urlSteps = new HashMap<>();
                     scanAnnotations(url, (annotation, className) ->
                             createStepType(annotation, className, classLoader)
-                                    .ifPresent(stepType -> urlSteps.put(stepType.getId(), stepType)));
+                                    .ifPresent(stepType -> urlSteps.merge(stepType.getId(), stepType,
+                                            (st1, st2) -> {
+                                                if (!st1.getImagePath().equals(st2.getImagePath())) {
+                                                    throw new IllegalStateException(st1.getId()+" "+st1.getImagePath()+" "+st2.getImagePath());
+                                                }
+                                                return st1;
+                                            })));
                     //if (!urlSteps.isEmpty()) {
                         String pluginClassUrl = VfsUtil.getUrlForLibraryRoot(path.toFile());
                         modificator.addRoot(pluginClassUrl, OrderRootType.CLASSES);
@@ -115,7 +121,7 @@ public class PdiSdkType extends SdkType {
     }
 
     private Optional<StepType> createStepType(Annotation annotation, String className, URLClassLoader classLoader) {
-        if (!"org.pentaho.di.core.annotations.Step".equals(annotation.getTypeName())) {
+        if (!List.of("org.pentaho.di.core.annotations.Step", "org.pentaho.di.core.annotations.PluginDialog").contains(annotation.getTypeName())) {
             return Optional.empty();
         }
         Set<String> memberNames = annotation.getMemberNames();

@@ -32,7 +32,7 @@ public class JavaReferenceContributor extends PsiReferenceContributor {
     @Override
     public void registerReferenceProviders(@NotNull PsiReferenceRegistrar registrar) {
         registrar.registerReferenceProvider(JAVA_LITERAL, new StepReferenceProvider(PsiElement::getResolveScope));
-        registrar.registerReferenceProvider(JAVA_LITERAL, new TransformationReferenceProvider());
+        registrar.registerReferenceProvider(JAVA_LITERAL, new FileReferenceProvider());
     }
 
     static Optional<String> getLiteralString(PsiElement element) {

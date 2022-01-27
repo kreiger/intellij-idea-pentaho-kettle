@@ -67,6 +67,16 @@
         />
         <lang.foldingBuilder language="PentahoKettleTransformation"
                              implementationClass="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.TransformationFoldingBuilder"/>
+
+        <fileType name="KJB"
+                  extensions="kjb"
+                  language="PentahoKettleJob"
+                  fieldName="INSTANCE"
+                  implementationClass="com.linuxgods.kreiger.idea.pentaho.kettle.job.JobFileType"/>
+        <lang.parserDefinition
+                language="PentahoKettleJob"
+                implementationClass="com.linuxgods.kreiger.idea.pentaho.kettle.job.JobParserDefinition"/>
+
         <sdkType implementation="com.linuxgods.kreiger.idea.pentaho.kettle.sdk.PdiSdkType"/>
         <facetType implementation="com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacetType"/>
         <framework.detector implementation="com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFrameworkDetector"/>

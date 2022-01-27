@@ -8,7 +8,6 @@ import com.intellij.psi.xml.XmlFile;
 import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacet;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.pentaho.di.core.CheckResultInterface;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
@@ -46,10 +45,13 @@ public class TransformationInspection extends LocalInspectionTool {
             Object transMeta = nodeConstructor.newInstance(document.getDocumentElement(), null);
             Method checkStepsMethod = Arrays.stream(transMetaClass.getDeclaredMethods())
                     .filter(method -> "checkSteps".equals(method.getName()))
+                    .filter(method -> method.getParameterTypes().length == 6)
                     .findFirst().orElseThrow();
-            List<CheckResultInterface> remarks = new ArrayList<>();
+            List<?> remarks = new ArrayList<>();
             checkStepsMethod.invoke(transMeta, remarks, false, null, null, null, null);
-            System.out.println(remarks);
+            for (Object remark : remarks) {
+                System.out.println("Remark: " + remark);
+            }
         } catch (ClassNotFoundException | ParserConfigurationException | IOException | SAXException | InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             e.printStackTrace();
         }
