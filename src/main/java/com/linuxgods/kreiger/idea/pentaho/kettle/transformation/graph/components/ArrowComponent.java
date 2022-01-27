@@ -8,8 +8,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 
@@ -20,7 +18,7 @@ public class ArrowComponent extends JComponent {
     private Point fromPoint;
     private Point toPoint;
 
-    public ArrowComponent(StepComponent from, StepComponent to) {
+    public ArrowComponent(NodeComponent from, NodeComponent to) {
         update(from, to);
         ComponentAdapter moveListener = new ComponentAdapter() {
             @Override public void componentMoved(ComponentEvent e) {
@@ -31,7 +29,7 @@ public class ArrowComponent extends JComponent {
         to.addComponentListener(moveListener);
     }
 
-    private void update(StepComponent from, StepComponent to) {
+    private void update(NodeComponent from, NodeComponent to) {
         fromPoint = from.getIconCenter();
         toPoint = to.getIconCenter();
         Rectangle bounds = createBounds();

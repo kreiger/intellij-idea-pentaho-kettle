@@ -10,17 +10,12 @@ import com.intellij.openapi.util.Key;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.NavigatablePsiElement;
 import com.intellij.ui.components.JBScrollPane;
-import com.linuxgods.kreiger.idea.pentaho.kettle.ImageUtil;
 import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacet;
-import com.linuxgods.kreiger.idea.pentaho.kettle.sdk.StepType;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Hop;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Notepad;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Transformation;
-import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.components.ArrowComponent;
-import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.components.GoToStepListener;
-import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.components.NotepadComponent;
-import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.components.StepComponent;
+import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.graph.components.*;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
@@ -61,13 +56,13 @@ public class TransformationFileEditor implements FileEditor {
     }
 
     private void createGraph(JComponent graphViewComponent, Transformation transformation, PdiFacet pdiFacet) {
-        Map<Step, StepComponent> stepComponents = transformation.getSteps().stream()
+        Map<Step, NodeComponent<Step>> stepComponents = transformation.getSteps().stream()
                 .collect(toMap(identity(), step -> createStepComponent(pdiFacet, step)));
-        for (StepComponent stepComponent : stepComponents.values()) {
-            stepComponent.addMouseListener(new GoToStepListener(() -> {
-                ((NavigatablePsiElement)stepComponent.getStep().getXmlTag()).navigate(true);
+        for (NodeComponent<Step> nodeComponent : stepComponents.values()) {
+            nodeComponent.addMouseListener(new GoToStepListener(() -> {
+                ((NavigatablePsiElement) nodeComponent.getNode().getValue().getXmlTag()).navigate(true);
             }));
-            graphViewComponent.add(stepComponent);
+            graphViewComponent.add(nodeComponent);
 
         }
         for (Hop hop : transformation.getOrder().getHops()) {
@@ -84,10 +79,8 @@ public class TransformationFileEditor implements FileEditor {
     }
 
 
-    @NotNull private StepComponent createStepComponent(PdiFacet facet, Step step) {
-        StepType type = step.getType().getValue();
-        Icon icon = null != type ? type.getIcon() : ImageUtil.MISSING_ENTRY_ICON;
-        return new StepComponent(step, icon);
+    @NotNull private NodeComponent<Step> createStepComponent(PdiFacet facet, Step step) {
+        return new NodeComponent(new StepNode(step));
     }
 
     @Override public @Nullable VirtualFile getFile() {
