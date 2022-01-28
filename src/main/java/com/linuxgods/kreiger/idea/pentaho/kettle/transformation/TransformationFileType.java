@@ -1,18 +1,16 @@
 package com.linuxgods.kreiger.idea.pentaho.kettle.transformation;
 
-import com.intellij.ide.highlighter.DomSupportEnabled;
-import com.intellij.ide.highlighter.XmlLikeFileType;
-import com.intellij.openapi.fileTypes.UIBasedFileType;
 import com.intellij.openapi.util.NlsContexts;
 import com.intellij.openapi.util.NlsSafe;
 import com.intellij.ui.IconManager;
+import com.linuxgods.kreiger.idea.pentaho.kettle.PentahoKettleFileType;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 
-public class TransformationFileType extends XmlLikeFileType implements UIBasedFileType, DomSupportEnabled {
+public class TransformationFileType extends PentahoKettleFileType {
     public final static TransformationFileType INSTANCE = new TransformationFileType();
 
     protected TransformationFileType() {

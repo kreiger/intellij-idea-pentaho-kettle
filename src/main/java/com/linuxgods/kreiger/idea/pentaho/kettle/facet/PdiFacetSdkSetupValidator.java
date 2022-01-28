@@ -13,8 +13,8 @@ import com.intellij.openapi.roots.ui.configuration.SdkPopupFactory;
 import com.intellij.openapi.util.NlsContexts;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.EditorNotificationPanel;
+import com.linuxgods.kreiger.idea.pentaho.kettle.PentahoKettleFileType;
 import com.linuxgods.kreiger.idea.pentaho.kettle.sdk.PdiSdkType;
-import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.TransformationFileType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -23,7 +23,7 @@ import java.util.stream.Stream;
 
 public class PdiFacetSdkSetupValidator implements ProjectSdkSetupValidator {
     @Override public boolean isApplicableFor(@NotNull Project project, @NotNull VirtualFile file) {
-        return file.getFileType() instanceof TransformationFileType;
+        return file.getFileType() instanceof PentahoKettleFileType;
     }
 
     @Override
@@ -50,7 +50,7 @@ public class PdiFacetSdkSetupValidator implements ProjectSdkSetupValidator {
                         facetManager.facetConfigurationChanged(pdiFacet);
                         FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
                         Stream.of(fileEditorManager.getOpenFiles())
-                                .filter(virtualFile -> virtualFile.getFileType() instanceof TransformationFileType)
+                                .filter(virtualFile -> virtualFile.getFileType() instanceof PentahoKettleFileType)
                                 .forEach(virtualFile -> {
                                     fileEditorManager.closeFile(virtualFile);
                                     fileEditorManager.openFile(virtualFile, false);

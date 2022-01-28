@@ -7,14 +7,15 @@ import com.intellij.openapi.fileTypes.FileType;
 import com.intellij.openapi.roots.ModifiableRootModel;
 import com.intellij.patterns.ElementPattern;
 import com.intellij.util.indexing.FileContent;
+import com.linuxgods.kreiger.idea.pentaho.kettle.job.JobFileType;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.TransformationFileType;
 import org.jetbrains.annotations.NotNull;
 
 import static com.intellij.patterns.StandardPatterns.string;
 
-public class PdiFrameworkDetector extends FacetBasedFrameworkDetector<PdiFacet, PdiFacetConfiguration> {
-    public PdiFrameworkDetector() {
-        super("PentahoKettle");
+public class PdiJobFrameworkDetector extends FacetBasedFrameworkDetector<PdiFacet, PdiFacetConfiguration> {
+    public PdiJobFrameworkDetector() {
+        super("PentahoKettleJob");
     }
 
     @Override public @NotNull FacetType<PdiFacet, PdiFacetConfiguration> getFacetType() {
@@ -22,13 +23,13 @@ public class PdiFrameworkDetector extends FacetBasedFrameworkDetector<PdiFacet, 
     }
 
     @Override public @NotNull FileType getFileType() {
-        return TransformationFileType.INSTANCE;
+        return JobFileType.INSTANCE;
     }
 
     @Override public @NotNull ElementPattern<FileContent> createSuitableFilePattern() {
         return FileContentPattern.fileContent()
-                .withName(string().endsWith(".ktr"))
-                .xmlWithRootTag("transformation");
+                .withName(string().endsWith(".kjb"))
+                .xmlWithRootTag("job");
     }
 
     @Override public void setupFacet(@NotNull PdiFacet facet, ModifiableRootModel model) {

@@ -60,3 +60,7 @@ intellij {
   ]
   downloadSources = true
 }
+
+runIde {
+  jvmArgs '-Xmx2048M'
+}

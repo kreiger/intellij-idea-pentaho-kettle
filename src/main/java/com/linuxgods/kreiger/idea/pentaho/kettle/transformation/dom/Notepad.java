@@ -61,7 +61,7 @@ public interface Notepad extends DomElement {
                 | ("Y".equals(getFontitalic().getValue()) ? Font.ITALIC : 0) ;
         int fontSize = requireNonNullElse(getFontsize().getValue(), 11);
         if (fontSize <= 0) fontSize = 11;
-        Font font = new Font(fontName, fontStyle, (int) (fontSize));
+        Font font = new Font(fontName, fontStyle, (int) (fontSize*1.5));
         System.out.println("Font: "+font);
         return font;
     }

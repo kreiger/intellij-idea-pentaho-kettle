@@ -83,15 +83,19 @@
         />
         <fileEditorProvider
                 implementation="com.linuxgods.kreiger.idea.pentaho.kettle.job.JobFileEditorProvider"/>
+        <lang.foldingBuilder language="PentahoKettleJob"
+                             implementationClass="com.linuxgods.kreiger.idea.pentaho.kettle.job.JobFoldingBuilder"/>
 
 
         <sdkType implementation="com.linuxgods.kreiger.idea.pentaho.kettle.sdk.PdiSdkType"/>
         <facetType implementation="com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacetType"/>
-        <framework.detector implementation="com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFrameworkDetector"/>
+        <framework.detector implementation="com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiTransformationFrameworkDetector"/>
+        <framework.detector implementation="com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiJobFrameworkDetector"/>
         <frameworkSupport
                 implementation="com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacetBasedFrameworkSupportProvider"/>
         <projectSdkSetupValidator
                 implementation="com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacetSdkSetupValidator"/>
+
     </extensions>
 
     <actions>

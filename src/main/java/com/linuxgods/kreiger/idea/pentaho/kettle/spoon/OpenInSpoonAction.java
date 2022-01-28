@@ -9,29 +9,29 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.Presentation;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.projectRoots.*;
+import com.intellij.openapi.projectRoots.JavaSdk;
+import com.intellij.openapi.projectRoots.JavaSdkVersion;
+import com.intellij.openapi.projectRoots.ProjectJdkTable;
+import com.intellij.openapi.projectRoots.Sdk;
 import com.intellij.openapi.roots.ProjectFileIndex;
 import com.intellij.openapi.util.SystemInfo;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.linuxgods.kreiger.idea.pentaho.kettle.PentahoKettleFileType;
 import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacetConfiguration;
 import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacetType;
-import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.TransformationFileType;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 
 public class OpenInSpoonAction extends AnAction {
 
-    public static final TransformationFileType FILE_TYPE = TransformationFileType.INSTANCE;
-
     @Override public void update(@NotNull AnActionEvent e) {
         VirtualFile file = e.getData(CommonDataKeys.VIRTUAL_FILE);
-        boolean transformation = null != file && FILE_TYPE.equals(file.getFileType());
+        boolean visible = null != file && file.getFileType() instanceof PentahoKettleFileType;
 
         Presentation presentation = e.getPresentation();
         presentation.setDisabledIcon(presentation.getIcon());
-        presentation.setVisible(transformation);
+        presentation.setVisible(visible);
 
         Optional<VirtualFile> spoon = getSpoon(e.getProject(), file);
         if (spoon.isEmpty()) {

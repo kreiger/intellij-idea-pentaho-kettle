@@ -6,13 +6,14 @@ import com.intellij.openapi.fileTypes.UIBasedFileType;
 import com.intellij.openapi.util.NlsContexts;
 import com.intellij.openapi.util.NlsSafe;
 import com.intellij.ui.IconManager;
+import com.linuxgods.kreiger.idea.pentaho.kettle.PentahoKettleFileType;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 
-public class JobFileType extends XmlLikeFileType implements UIBasedFileType, DomSupportEnabled {
+public class JobFileType extends PentahoKettleFileType {
     public final static JobFileType INSTANCE = new JobFileType();
 
     protected JobFileType() {

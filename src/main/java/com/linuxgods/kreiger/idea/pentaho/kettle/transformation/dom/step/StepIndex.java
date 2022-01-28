@@ -49,10 +49,8 @@ public class StepIndex extends ScalarIndexExtension<String> {
 
     @Override
     public @NotNull DataIndexer<String, Void, FileContent> getIndexer() {
-        System.out.println("getIndexer");
         return inputData -> {
             VirtualFile file = inputData.getFile();
-            System.out.println("Indexing "+ file);
             Transformation transformation = Transformation.getTransformation(inputData.getProject(), file);
 
             return transformation.getSteps().stream()
