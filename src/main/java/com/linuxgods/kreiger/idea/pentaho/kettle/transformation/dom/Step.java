@@ -185,7 +185,7 @@ public interface Step extends DomElement {
 
     class StepTypeConverter extends ResolvingConverter<StepType> implements CustomReferenceConverter<StepType> {
         @Override public @NotNull Collection<? extends StepType> getVariants(ConvertContext context) {
-            return PdiFacet.getInstance(Objects.requireNonNull(context.getModule()))
+            return PdiFacet.getInstance(context.getModule())
                     .stream()
                     .flatMap(PdiFacet::getStepTypes)
                     .collect(toList());

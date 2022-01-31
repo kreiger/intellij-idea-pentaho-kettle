@@ -35,7 +35,8 @@ public class PdiFacet extends Facet<PdiFacetConfiguration> {
         return PdiFacet.getInstance(element.getProject(), element.getContainingFile().getVirtualFile());
     }
 
-    public static Optional<PdiFacet> getInstance(@NotNull Module module) {
+    public static Optional<PdiFacet> getInstance(Module module) {
+        if (module == null) return Optional.empty();
         return Optional.ofNullable(FacetManager.getInstance(module).getFacetByType(PdiFacetType.ID));
     }
 
@@ -88,7 +89,7 @@ public class PdiFacet extends Facet<PdiFacetConfiguration> {
 
     }
 
-    Optional<Sdk> getSdk() {
+    public Optional<Sdk> getSdk() {
         return Optional.of(getConfiguration())
                 .map(PdiFacetConfiguration::getSdk);
     }

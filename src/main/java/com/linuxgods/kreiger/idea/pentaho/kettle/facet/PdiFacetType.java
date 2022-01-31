@@ -36,7 +36,6 @@ public class PdiFacetType extends FacetType<PdiFacet, PdiFacetConfiguration> {
     }
 
     @Override public PdiFacetConfiguration createDefaultConfiguration() {
-        System.out.println("createDefaultConfiguration");
         var configuration = new PdiFacetConfiguration();
         List<Sdk> sdks = ProjectJdkTable.getInstance().getSdksOfType(PdiSdkType.INSTANCE);
         if (sdks.size() > 0) {
@@ -48,58 +47,7 @@ public class PdiFacetType extends FacetType<PdiFacet, PdiFacetConfiguration> {
 
     @Override
     public PdiFacet createFacet(@NotNull Module module, @NlsSafe String name, @NotNull PdiFacetConfiguration configuration, @Nullable Facet underlyingFacet) {
-        System.out.println("createFacet");
-        Sdk sdk = configuration.getSdk();
-        if (null != sdk) {
-            addSdkLibrary(module, sdk);
-        }
         return new PdiFacet(module, name, configuration, underlyingFacet);
-    }
-
-    private void addSdkLibrary(@NotNull Module module, Sdk sdk) {
-        Application application = ApplicationManager.getApplication();
-        application.invokeLater(() -> {
-            application.runWriteAction(() -> {
-                LibraryTable libraryTable = LibraryTablesRegistrar.getInstance().getLibraryTable();
-                Library finalLibrary = addLibrary(libraryTable, sdk);
-                application.invokeLater(() -> application.runWriteAction(() -> {
-                    if (!libraryExists(module, finalLibrary)) {
-                        ModuleRootModificationUtil.addDependency(module, finalLibrary, RUNTIME, false);
-                    }
-                }));
-            });
-        });
-    }
-
-    @NotNull private Library addLibrary(LibraryTable libraryTable, Sdk sdk) {
-        Library library = libraryTable.getLibraryByName(getLibraryName(sdk));
-        if (null == library) {
-            library = createLibrary(libraryTable, sdk);
-        }
-        return library;
-    }
-
-    private boolean libraryExists(@NotNull Module module, Library library) {
-        return Stream.of(ModuleRootManager.getInstance(module).getOrderEntries())
-                .filter(orderEntry -> orderEntry instanceof LibraryOrderEntry)
-                .map(orderEntry -> (LibraryOrderEntry) orderEntry)
-                .anyMatch(libraryOrderEntry -> library.equals(libraryOrderEntry.getLibrary()));
-    }
-
-    @NotNull private Library createLibrary(LibraryTable libraryTable, Sdk sdk) {
-        String libraryName = getLibraryName(sdk);
-        Library library = libraryTable.createLibrary(libraryName);
-        Library.ModifiableModel libraryModel = library.getModifiableModel();
-        libraryModel.setName(libraryName);
-        for (VirtualFile virtualFile : sdk.getRootProvider().getFiles(OrderRootType.CLASSES)) {
-            libraryModel.addRoot(virtualFile, OrderRootType.CLASSES);
-        }
-        libraryModel.commit();
-        return library;
-    }
-
-    @NlsSafe @NotNull private String getLibraryName(Sdk sdk) {
-        return sdk.getName();
     }
 
     @Override public @Nullable Icon getIcon() {

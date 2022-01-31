@@ -26,8 +26,6 @@
     <!-- depends>org.intellij.plugins.markdown</depends -->
 
     <applicationListeners>
-        <!-- listener class="com.linuxgods.kreiger.idea.pentaho.kettle.sdk.PdiProjectJdkTableListener"
-                  topic="com.intellij.openapi.projectRoots.ProjectJdkTable$Listener" / -->
     </applicationListeners>
 
     <extensions defaultExtensionNs="com.intellij">
@@ -95,6 +93,8 @@
                 implementation="com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacetBasedFrameworkSupportProvider"/>
         <projectSdkSetupValidator
                 implementation="com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacetSdkSetupValidator"/>
+        <additionalLibraryRootsProvider
+                implementation="com.linuxgods.kreiger.idea.pentaho.kettle.sdk.PdiSdkAdditionalLibraryRootsProvider" />
 
     </extensions>
 
