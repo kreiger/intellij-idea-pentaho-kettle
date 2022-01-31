@@ -12,10 +12,9 @@ import com.intellij.psi.NavigatablePsiElement;
 import com.intellij.ui.components.JBScrollPane;
 import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacet;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Hop;
-import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Notepad;
+import com.linuxgods.kreiger.idea.pentaho.kettle.graph.Notepad;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Transformation;
-import com.linuxgods.kreiger.idea.pentaho.kettle.graph.StepNode;
 import com.linuxgods.kreiger.idea.pentaho.kettle.graph.components.*;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NonNls;
@@ -27,6 +26,8 @@ import org.slf4j.LoggerFactory;
 import javax.swing.*;
 import java.awt.*;
 import java.beans.PropertyChangeListener;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Map;
 
 import static java.awt.RenderingHints.KEY_ANTIALIASING;
@@ -74,7 +75,11 @@ public class TransformationFileEditor implements FileEditor {
             }
         }
         for (Notepad notepad : transformation.getNotepads().getNotepads()) {
-            graphViewComponent.add(new NotepadComponent(notepad));
+            try {
+                graphViewComponent.add(new NotepadComponent(notepad));
+            } catch (NullPointerException e) {
+                LOGGER.warn("", e);
+            }
         }
 
     }

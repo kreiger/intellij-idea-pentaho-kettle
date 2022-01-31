@@ -1,4 +1,4 @@
-package com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom;
+package com.linuxgods.kreiger.idea.pentaho.kettle.graph;
 
 import com.intellij.util.xml.DomElement;
 

@@ -1,6 +1,7 @@
-package com.linuxgods.kreiger.idea.pentaho.kettle.graph;
+package com.linuxgods.kreiger.idea.pentaho.kettle.transformation;
 
 import com.linuxgods.kreiger.idea.pentaho.kettle.ImageUtil;
+import com.linuxgods.kreiger.idea.pentaho.kettle.graph.Node;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step;
 
 import javax.swing.*;

@@ -6,6 +6,7 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 import com.intellij.psi.xml.XmlFile;
 import com.intellij.util.xml.*;
+import com.linuxgods.kreiger.idea.pentaho.kettle.graph.Notepads;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;

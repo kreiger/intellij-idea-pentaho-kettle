@@ -8,7 +8,7 @@ import com.intellij.psi.xml.XmlFile;
 import com.intellij.util.xml.DomElement;
 import com.intellij.util.xml.DomFileElement;
 import com.intellij.util.xml.DomManager;
-import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Transformation;
+import com.linuxgods.kreiger.idea.pentaho.kettle.graph.Notepads;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
@@ -16,6 +16,9 @@ import java.util.Objects;
 public interface Job extends DomElement {
     Hops getHops();
     Entries getEntries();
+
+    Notepads getNotepads();
+
 
     @NotNull static Job getJob(Project project, VirtualFile file) {
         PsiManager psiManager = PsiManager.getInstance(project);

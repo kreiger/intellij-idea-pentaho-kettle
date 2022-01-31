@@ -14,9 +14,11 @@ import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacet;
 import com.linuxgods.kreiger.idea.pentaho.kettle.graph.components.ArrowComponent;
 import com.linuxgods.kreiger.idea.pentaho.kettle.graph.components.GoToStepListener;
 import com.linuxgods.kreiger.idea.pentaho.kettle.graph.components.NodeComponent;
+import com.linuxgods.kreiger.idea.pentaho.kettle.graph.components.NotepadComponent;
 import com.linuxgods.kreiger.idea.pentaho.kettle.job.dom.Entry;
 import com.linuxgods.kreiger.idea.pentaho.kettle.job.dom.Hop;
 import com.linuxgods.kreiger.idea.pentaho.kettle.job.dom.Job;
+import com.linuxgods.kreiger.idea.pentaho.kettle.graph.Notepad;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
@@ -74,11 +76,15 @@ public class JobFileEditor implements FileEditor {
                 graphViewComponent.add(new ArrowComponent(entryComponents.get(from), entryComponents.get(to)));
             }
         }
-        /*
+
         for (Notepad notepad : job.getNotepads().getNotepads()) {
-            graphViewComponent.add(new NotepadComponent(notepad));
+            try {
+                graphViewComponent.add(new NotepadComponent(notepad));
+            } catch (NullPointerException e) {
+                LOGGER.warn("", e);
+            }
         }
-        */
+
     }
 
 

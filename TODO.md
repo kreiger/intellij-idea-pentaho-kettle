@@ -2,16 +2,23 @@
 - Transformation graph with 
   - [x] Steps
   - [x] Arrows
-  - [ ] Notes
+  - [x] Notes
   - [x] Scrollbars
   - [x] Go to step
   - [x] Open in Spoon
   - [x] Toolbar
-- [ ] Job graph
+- [x] Job graph
+  - [x] Entries
+  - [x] Arrows
+  - [ ] Notes
+  - [x] Scrollbars
+  - [x] Go to entry
+  - [x] Open in Spoon
+  - [x] Toolbar
 - [x] Open in Spoon
 - [x] Go to transformation from Java String
 - [x] Transformation Folding
-- [ ] Job Folding
+- [x] Job Folding
 
 # Should have
 - [ ] Rename/move transformation everywhere (other Transformations, Java Strings)

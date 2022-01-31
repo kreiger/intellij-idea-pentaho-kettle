@@ -1,6 +1,6 @@
 package com.linuxgods.kreiger.idea.pentaho.kettle.graph.components;
 
-import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Notepad;
+import com.linuxgods.kreiger.idea.pentaho.kettle.graph.Notepad;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.swing.*;
@@ -30,7 +30,6 @@ public class NotepadComponent extends JTextArea {
         setBorder(border);
         int borderWidth = 10;
 
-        int newlineCount = StringUtils.countMatches(text, "\n");
         TextLayout textLayout = new TextLayout(text, font, new FontRenderContext(null, false, true));
         Rectangle2D stringBounds = textLayout.getBounds();
         int metaWidth = Objects.requireNonNullElse(notepad.getWidth().getValue(), 20);
@@ -38,8 +37,9 @@ public class NotepadComponent extends JTextArea {
         //int width = Integer.max(metaWidth, (int) stringBounds.getWidth());
         int width = metaWidth;
         int height = Integer.max(metaHeight, (int) stringBounds.getHeight());
-        setBounds(new Rectangle(notepad.getXloc().getValue(), notepad.getYloc().getValue(),
-                (int) (width + borderWidth), (int) (height+ borderWidth)));
+        Rectangle bounds = new Rectangle(notepad.getXloc().getValue(), notepad.getYloc().getValue(),
+                (int) (width + borderWidth), (int) (height + borderWidth));
+        setBounds(bounds);
     }
 
     @Override
