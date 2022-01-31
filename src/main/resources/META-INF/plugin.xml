@@ -95,7 +95,8 @@
                 implementation="com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacetSdkSetupValidator"/>
         <additionalLibraryRootsProvider
                 implementation="com.linuxgods.kreiger.idea.pentaho.kettle.sdk.PdiSdkAdditionalLibraryRootsProvider" />
-
+        <projectFacetListener facet-type="PENTAHO_KETTLE"
+                              implementation="com.linuxgods.kreiger.idea.pentaho.kettle.sdk.PdiSdkAdditionalLibraryRootsProvider" />
     </extensions>
 
     <actions>

@@ -13,8 +13,6 @@ import org.jdom.Element;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.io.IOException;
@@ -31,11 +29,12 @@ import java.util.stream.Stream;
 
 import static com.linuxgods.kreiger.idea.pentaho.kettle.sdk.AnnotationsScanner.scanAnnotations;
 import static java.util.stream.Collectors.toList;
-import static org.apache.commons.lang.StringUtils.*;
+import static org.apache.commons.lang.StringUtils.isNotBlank;
 
 public class PdiSdkType extends SdkType {
-    public final static PdiSdkType INSTANCE = new PdiSdkType();
-    public static final Logger LOGGER = LoggerFactory.getLogger(PdiSdkType.class);
+    public static PdiSdkType getInstance() {
+        return SdkType.EP_NAME.findExtension(PdiSdkType.class);
+    }
 
     public PdiSdkType() {
         super("PentahoDataIntegration");
