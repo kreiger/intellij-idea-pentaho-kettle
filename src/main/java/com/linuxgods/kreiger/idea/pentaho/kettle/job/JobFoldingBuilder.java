@@ -18,6 +18,7 @@ import com.intellij.psi.xml.XmlTokenType;
 import com.intellij.util.ProcessingContext;
 import com.intellij.xml.util.XmlUtil;
 import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacet;
+import com.linuxgods.kreiger.idea.pentaho.kettle.sdk.JobEntryType;
 import one.util.streamex.StreamEx;
 import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
@@ -286,14 +287,16 @@ public class JobFoldingBuilder extends FoldingBuilderEx implements DumbAware {
 
             private void visitEntry(XmlTag xmlTag) {
                 String type = requireNonNullElse(xmlTag.getSubTagText("type"), "?");
-                String typeClass = pdiFacet.flatMap(facet -> facet.getStepTypeClassName(type))
+                String typeClass = pdiFacet.flatMap(facet -> facet.getJobEntryType(type))
+                        .map(JobEntryType::getClassName)
                         .map(className -> StringUtils.substringAfterLast(className, "."))
                         .orElse(type);
                 foldSubTags(xmlTag, new Function<>() {
                     final Set<String> excludedTagNames = Set.of("name", "type");
                     final FoldingGroup entryDefaultsGroup = FoldingGroup.newGroup("...JobEntryCopy default...");
                     final FoldingGroup entryGroup = FoldingGroup.newGroup("...JobEntryCopy...");
-                    final FoldingGroup typeMetaGroup = FoldingGroup.newGroup("..." + typeClass + "...");
+                    final FoldingGroup typeGroup = FoldingGroup.newGroup("..." + typeClass + "...");
+                    final FoldingGroup typeDefaultsGroup = FoldingGroup.newGroup("..." + typeClass + " default...");
 
                     @Override
                     public Map.Entry<FoldingGroup, String> apply(XmlTag tag) {
@@ -301,12 +304,14 @@ public class JobFoldingBuilder extends FoldingBuilderEx implements DumbAware {
                         if (excludedTagNames.contains(tagName)) {
                             return null;
                         }
-                        FoldingGroup foldingGroup = getEntryTagDefault(tag)
+                        return getEntryTagDefault(type, tag)
                                 .map(entryTagDefault -> entryTagDefault ? entryDefaultsGroup : entryGroup)
-                                .orElse(typeMetaGroup);
-                        return entry(foldingGroup, foldingGroup.toString());
-
+                                .or(() -> getEntryTypeDefault(type, tag)
+                                        .map(entryTypeDefault -> entryTypeDefault ? typeDefaultsGroup : typeGroup))
+                                .map(foldingGroup -> entry(foldingGroup, foldingGroup.toString()))
+                                .orElse(null);
                     }
+
                 });
             }
 
@@ -344,10 +349,11 @@ public class JobFoldingBuilder extends FoldingBuilderEx implements DumbAware {
         return foldingDescriptors.toArray(FoldingDescriptor[]::new);
     }
 
-    private Optional<Boolean> getEntryTagDefault(XmlTag tag) {
-        String localName = tag.getLocalName();
-        switch (localName) {
+    private Optional<Boolean> getEntryTagDefault(String type, XmlTag tag) {
+        switch (tag.getLocalName()) {
             case "description":
+            case "attributes":
+            case "attributes_xjc":
                 return Optional.of(tag.isEmpty());
             case "parallel":
                 return Optional.of("N".equals(tag.getValue().getText()));
@@ -358,6 +364,76 @@ public class JobFoldingBuilder extends FoldingBuilderEx implements DumbAware {
             case "xloc":
             case "yloc":
                 return Optional.of(true);
+        }
+        return Optional.empty();
+    }
+
+    private Optional<Boolean> getEntryTypeDefault(String type, XmlTag tag) {
+        switch (type) {
+            case "TRANS":
+                return getTransTagDefault(tag);
+            case "JOB":
+                return getJobTagDefault(tag);
+        }
+        return Optional.empty();
+    }
+
+    private Optional<Boolean> getJobTagDefault(XmlTag tag) {
+        switch (tag.getLocalName()) {
+            case "jobname":
+                return Optional.empty();
+            case "expand_remote_job":
+            case "pass_export":
+                return Optional.of("N".equals(tag.getValue().getText()));
+            case "job_object_id":
+                return Optional.of(tag.isEmpty());
+        }
+        return getJobOrTransTagDefault(tag);
+    }
+
+    private Optional<Boolean> getTransTagDefault(XmlTag tag) {
+        switch (tag.getLocalName()) {
+            case "transname":
+                return Optional.empty();
+            case "clear_rows":
+            case "clear_files":
+            case "cluster":
+                return Optional.of("N".equals(tag.getValue().getText()));
+            case "trans_object_id":
+                return Optional.of(tag.isEmpty());
+        }
+        return getJobOrTransTagDefault(tag);
+    }
+
+    private Optional<Boolean> getJobOrTransTagDefault(XmlTag tag) {
+        switch (tag.getLocalName()) {
+            case "specification_method":
+            case "filename":
+            case "directory":
+                return Optional.empty();
+            case "parameters":
+                return Optional.of(tag.getSubTags().length <= 1);
+            case "set_logfile":
+            case "exec_per_row":
+            case "arg_from_previous":
+            case "params_from_previous":
+            case "add_date":
+            case "add_time":
+            case "set_append_logfile":
+            case "follow_abort_remote":
+            case "create_parent_folder":
+            case "logging_remote_work":
+                return Optional.of("N".equals(tag.getValue().getText()));
+            case "wait_until_finished":
+                return Optional.of("Y".equals(tag.getValue().getText()));
+            case "logfile":
+            case "logext":
+            case "slave_server_name":
+            case "run_configuration":
+                return Optional.of(tag.isEmpty());
+            case "loglevel":
+                return Optional.of("Nothing".equals(tag.getValue().getText()));
+
         }
         return Optional.empty();
     }
