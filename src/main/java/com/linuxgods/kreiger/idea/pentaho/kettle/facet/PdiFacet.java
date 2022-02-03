@@ -10,15 +10,11 @@ import com.intellij.openapi.util.NlsSafe;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
 import com.intellij.psi.search.GlobalSearchScope;
-import com.linuxgods.kreiger.idea.pentaho.kettle.ImageUtil;
 import com.linuxgods.kreiger.idea.pentaho.kettle.sdk.JobEntryType;
 import com.linuxgods.kreiger.idea.pentaho.kettle.sdk.PdiSdkAdditionalData;
 import com.linuxgods.kreiger.idea.pentaho.kettle.sdk.StepType;
 import org.jetbrains.annotations.NotNull;
 
-import javax.swing.*;
-import java.awt.Image;
-import java.awt.Color;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
@@ -46,35 +42,9 @@ public class PdiFacet extends Facet<PdiFacetConfiguration> {
                 .flatMap(PdiFacet::getInstance);
     }
 
-    @NotNull
-    private static Stream<? extends PsiMethod> getPublicMethods(PsiClass psiClass, String... methodNames) {
-        Set<String> methodNamesSet = Set.of(methodNames);
-        return Arrays.stream(psiClass.getMethods())
-                .filter(psiMethod -> psiMethod.hasModifierProperty(PsiModifier.PUBLIC))
-                .filter(psiMethod -> methodNamesSet.contains(psiMethod.getName()));
-    }
-
     @NotNull public Optional<PdiSdkAdditionalData> getSdkAdditionalData() {
         return getSdk()
                 .map(sdk -> (PdiSdkAdditionalData) sdk.getSdkAdditionalData());
-    }
-
-    public Optional<Icon> getIcon(String type) {
-        return getStepType(type).map(StepType::getIcon);
-    }
-
-    public Stream<PsiClass> findStepMetaClasses(String type, @NotNull GlobalSearchScope resolveScope) {
-        return getStepTypeClassName(type)
-                .stream()
-                .flatMap(className -> {
-                    JavaPsiFacade javaPsiFacade = JavaPsiFacade.getInstance(getModule().getProject());
-                    return Stream.of(javaPsiFacade.findClasses(className, resolveScope));
-                });
-    }
-
-    @NotNull public Optional<String> getStepTypeClassName(String type) {
-        return getStepType(type)
-                .map(StepType::getClassName);
     }
 
     @NotNull public Optional<StepType> getStepType(String type) {
@@ -95,9 +65,9 @@ public class PdiFacet extends Facet<PdiFacetConfiguration> {
     }
 
     @NotNull
-    public Stream<NavigatablePsiElement> getTypePsiElements(String type, @NotNull GlobalSearchScope resolveScope) {
-        return findStepMetaClasses(type, resolveScope)
-                .flatMap(psiClass -> Stream.<NavigatablePsiElement>concat(Stream.of(psiClass), getPublicMethods(psiClass, "getXML", "loadXML")));
+    public static Stream<PsiClass> findClasses(String className, @NotNull Project project, @NotNull GlobalSearchScope resolveScope) {
+        JavaPsiFacade javaPsiFacade = JavaPsiFacade.getInstance(project);
+        return Stream.of(javaPsiFacade.findClasses(className, resolveScope));
     }
 
     public Class<?> loadClass(String className) throws ClassNotFoundException {
@@ -112,7 +82,7 @@ public class PdiFacet extends Facet<PdiFacetConfiguration> {
         Class<?> kettleClientEnvironmentClass = loadClass("org.pentaho.di.core.KettleClientEnvironment");
         Method isInitializedMethod = kettleClientEnvironmentClass.getMethod("isInitialized");
         Method initMethod = kettleClientEnvironmentClass.getMethod("init");
-        boolean initialized = (boolean)isInitializedMethod.invoke(null);
+        boolean initialized = (boolean) isInitializedMethod.invoke(null);
         if (!initialized) {
             initMethod.invoke(null);
         }
@@ -121,5 +91,36 @@ public class PdiFacet extends Facet<PdiFacetConfiguration> {
     @NotNull public Optional<JobEntryType> getJobEntryType(String type) {
         return getSdkAdditionalData()
                 .flatMap(sdkAdditionalData -> sdkAdditionalData.getJobEntryType(type));
+    }
+
+    @NotNull public Optional<StepType> getStepTypeByClassName(String metaClassName) {
+        return getSdkAdditionalData()
+                .flatMap(ad -> ad.getStepTypeByClassName(metaClassName));
+    }
+
+    public Optional<StepType> getStepType(PsiType returnType) {
+        if (returnType == null) return Optional.empty();
+        return Optional.ofNullable(returnType.accept(new StepTypeVisitor()));
+    }
+
+    private class StepTypeVisitor extends PsiTypeVisitorEx<StepType> {
+        @Override public StepType visitClassType(@NotNull PsiClassType classType) {
+            PsiClass resolved = classType.resolve();
+            if (resolved == null) {
+                return null;
+            }
+            String qualifiedName = resolved.getQualifiedName();
+            if (qualifiedName == null) {
+                return null;
+            }
+            return getStepTypeByClassName(qualifiedName)
+                    .orElseGet(() -> {
+                        for (PsiType parameter : classType.getParameters()) {
+                            StepType stepType = parameter.accept(this);
+                            if (null != stepType) return stepType;
+                        }
+                        return null;
+                    });
+        }
     }
 }

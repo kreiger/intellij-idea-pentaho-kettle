@@ -14,8 +14,9 @@ public class StepTypeReferenceProvider extends PsiReferenceProvider {
     @Override
     public PsiReference @NotNull [] getReferencesByElement(@NotNull PsiElement element, @NotNull ProcessingContext context) {
         return getLiteralString(element)
-                .map(typeName -> PdiFacet.getInstance(element).stream()
-                        .flatMap(pdiFacet -> pdiFacet.getTypePsiElements(typeName, element.getResolveScope()))
+                .map(typeName -> PdiFacet.getInstance(element)
+                        .flatMap(pdiFacet -> pdiFacet.getStepType(typeName)).stream()
+                        .flatMap(stepType -> stepType.getTypePsiElements(element.getProject(), element.getResolveScope()))
                         .map(psiElement -> new PsiReferenceBase.Immediate<>(element, psiElement))
                         .toArray(PsiReference[]::new))
                 .orElse(PsiReference.EMPTY_ARRAY);

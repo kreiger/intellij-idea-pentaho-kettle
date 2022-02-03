@@ -5,8 +5,7 @@ import com.intellij.util.xml.*;
 import com.linuxgods.kreiger.idea.pentaho.kettle.KettleIcons;
 import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacet;
 import com.linuxgods.kreiger.idea.pentaho.kettle.sdk.JobEntryType;
-import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Coordinate;
-import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step;
+import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.step.StepTypeConverter;
 import org.apache.commons.lang.StringEscapeUtils;
 
 import javax.swing.*;
@@ -26,8 +25,8 @@ public interface Entry extends DomElement {
     GenericDomValue<String> getName();
 
     @Required
-    @Convert(Step.StepTypeConverter.class)
-    @Referencing(value = Step.StepTypeConverter.class)
+    @Convert(StepTypeConverter.class)
+    @Referencing(value = StepTypeConverter.class)
     GenericDomValue<JobEntryType> getType();
 
     default Optional<Icon> getIcon() {

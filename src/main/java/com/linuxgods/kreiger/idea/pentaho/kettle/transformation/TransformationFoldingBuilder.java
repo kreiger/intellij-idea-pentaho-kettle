@@ -18,6 +18,7 @@ import com.intellij.psi.xml.XmlTokenType;
 import com.intellij.util.ProcessingContext;
 import com.intellij.xml.util.XmlUtil;
 import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacet;
+import com.linuxgods.kreiger.idea.pentaho.kettle.sdk.StepType;
 import one.util.streamex.StreamEx;
 import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
@@ -287,7 +288,8 @@ public class TransformationFoldingBuilder extends FoldingBuilderEx implements Du
 
             private void visitStep(XmlTag xmlTag) {
                 String type = requireNonNullElse(xmlTag.getSubTagText("type"), "?");
-                String typeClass = pdiFacet.flatMap(facet -> facet.getStepTypeClassName(type))
+                String typeClass = pdiFacet.flatMap(facet -> facet.getStepType(type)
+                                .map(StepType::getClassName))
                         .map(className -> StringUtils.substringAfterLast(className, "."))
                         .orElse(type);
                 foldSubTags(xmlTag, new Function<>() {

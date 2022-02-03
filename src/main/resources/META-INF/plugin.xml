@@ -38,15 +38,17 @@
                                   implementation="com.linuxgods.kreiger.idea.pentaho.kettle.JavaReferenceContributor"/>
         <psi.referenceContributor language="XML"
                                   implementation="com.linuxgods.kreiger.idea.pentaho.kettle.XmlReferenceContributor"/>
-        <fileBasedIndex implementation="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.step.StepIndex"/>
+        <fileBasedIndex implementation="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.step.StepIndex"/>
         <codeInsight.lineMarkerProvider language="PentahoKettleTransformation"
-                                        implementationClass="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step$StepLineMarkerProvider"/>
+                                        implementationClass="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.step.DomStepLineMarkerProvider"/>
+        <codeInsight.lineMarkerProvider language="JAVA"
+                                        implementationClass="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.step.JavaStepLineMarkerProvider"/>
         <iconProvider
-                implementation="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step$StepIconProvider"/>
+                implementation="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.step.StepIconProvider"/>
         <presentationProvider forClass="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step"
-                              implementationClass="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step$StepPresentationProvider"/>
+                              implementationClass="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.step.StepPresentationProvider"/>
         <codeInsight.inlayProvider language="PentahoKettleTransformation"
-                                   implementationClass="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step$StepInlayHintsProvider"/>
+                                   implementationClass="com.linuxgods.kreiger.idea.pentaho.kettle.transformation.step.StepInlayHintsProvider"/>
         <fileType name="KTR"
                   extensions="ktr"
                   language="PentahoKettleTransformation"

@@ -7,7 +7,7 @@ import com.intellij.psi.PsiReferenceProvider;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.util.ProcessingContext;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step;
-import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.step.StepIndex;
+import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.step.StepIndex;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Function;

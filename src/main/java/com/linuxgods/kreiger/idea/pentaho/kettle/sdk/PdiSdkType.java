@@ -13,6 +13,8 @@ import org.jdom.Element;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.io.IOException;
@@ -32,6 +34,9 @@ import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 
 public class PdiSdkType extends SdkType {
+
+    public static final Logger LOGGER = LoggerFactory.getLogger(PdiSdkType.class);
+
     public static PdiSdkType getInstance() {
         return SdkType.EP_NAME.findExtension(PdiSdkType.class);
     }
@@ -79,7 +84,7 @@ public class PdiSdkType extends SdkType {
                                     .ifPresent(stepType -> urlSteps.merge(stepType.getId(), stepType,
                                             (st1, st2) -> {
                                                 if (!st1.getImagePath().equals(st2.getImagePath())) {
-                                                    throw new IllegalStateException(st1.getId()+" "+st1.getImagePath()+" "+st2.getImagePath());
+                                                    LOGGER.warn(st1.getId()+" "+st1.getImagePath()+" "+st2.getImagePath());
                                                 }
                                                 return st1;
                                             })));
