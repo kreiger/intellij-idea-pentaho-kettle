@@ -18,12 +18,21 @@ public class JavaStepLineMarkerProvider implements LineMarkerProvider {
         PdiFacet pdiFacet = PdiFacet.getInstance(element).orElse(null);
         if (null == pdiFacet) return null;
         PsiElement parent = element.getParent();
+        if (parent == null) return null;
+        /*
         if (parent instanceof PsiMethod) {
             PsiType type = ((PsiMethod) parent).getReturnType();
             StepType stepType = pdiFacet.getStepType(type).orElse(null);
             return getPsiElementLineMarkerInfo(element, stepType);
         }
+         */
         PsiElement grandParent = parent.getParent();
+        if (grandParent instanceof PsiTypeElement && grandParent.getParent() instanceof PsiClassObjectAccessExpression) {
+            PsiTypeElement typeElement = (PsiTypeElement) grandParent;
+            PsiType type = typeElement.getType();
+            StepType stepType = pdiFacet.getStepType(type).orElse(null);
+            return getPsiElementLineMarkerInfo(element, stepType);
+        }
         if (grandParent instanceof PsiCallExpression) {
             PsiCallExpression callExpression = (PsiCallExpression) grandParent;
             StepType stepType = pdiFacet.getStepType(callExpression.getType()).orElse(null);

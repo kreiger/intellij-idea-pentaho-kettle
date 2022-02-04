@@ -109,7 +109,9 @@ public class StepType {
 
     @NotNull
     public LineMarkerInfo<PsiElement> getPsiElementLineMarkerInfo(PsiElement element, List<NavigatablePsiElement> stepMetaClasses) {
-        LineMarkerInfo<PsiElement> lineMarkerInfo = new LineMarkerInfo<>(element, element.getTextRange(), getIcon(), null, new DefaultGutterIconNavigationHandler<>(stepMetaClasses, getId()), GutterIconRenderer.Alignment.LEFT, this::getId);
+        LineMarkerInfo<PsiElement> lineMarkerInfo = new LineMarkerInfo<>(element, element.getTextRange(), getIcon(),
+                psiElement -> getId(), new DefaultGutterIconNavigationHandler<>(stepMetaClasses, getId()),
+                GutterIconRenderer.Alignment.LEFT, this::getId);
         return NavigateAction.setNavigateAction(lineMarkerInfo, "Go To " + getId(), "GotoClass", getIcon());
     }
 
