@@ -25,6 +25,9 @@ import java.util.stream.Stream;
 public class KettleIcons {
     public static final @NotNull Logger LOGGER = Logger.getInstance(KettleIcons.class);
     public static final @NotNull Icon KETTLE_ICON = IconManager.getInstance().getIcon("/ui/images/kettle_logo_small.svg", KettleIcons.class);
+    public static final @NotNull Icon UNCONDITIONAL = IconManager.getInstance().getIcon("/ui/images/unconditional-hop.svg", KettleIcons.class);
+    public static final @NotNull Icon TRUE = IconManager.getInstance().getIcon("/ui/images/true.svg", KettleIcons.class);
+    public static final @NotNull Icon FALSE = IconManager.getInstance().getIcon("/ui/images/false.svg", KettleIcons.class);
     // FIXME Get from SDK
     public static final @NotNull Icon START_ICON = ImageUtil.graphIcon(KettleIcons.class.getResource("/ui/images/STR.svg"));
     // FIXME Get from SDK

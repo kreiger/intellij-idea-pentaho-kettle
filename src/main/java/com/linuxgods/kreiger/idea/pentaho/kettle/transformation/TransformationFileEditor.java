@@ -11,6 +11,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.NavigatablePsiElement;
 import com.intellij.ui.components.JBScrollPane;
 import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacet;
+import com.linuxgods.kreiger.idea.pentaho.kettle.graph.Arrow;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Hop;
 import com.linuxgods.kreiger.idea.pentaho.kettle.graph.Notepad;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step;
@@ -26,9 +27,8 @@ import org.slf4j.LoggerFactory;
 import javax.swing.*;
 import java.awt.*;
 import java.beans.PropertyChangeListener;
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.Map;
+import java.util.Optional;
 
 import static java.awt.RenderingHints.KEY_ANTIALIASING;
 import static java.awt.RenderingHints.VALUE_ANTIALIAS_ON;
@@ -71,7 +71,15 @@ public class TransformationFileEditor implements FileEditor {
             Step from = hop.getFrom().getValue();
             Step to = hop.getTo().getValue();
             if (from != null && to != null) {
-                graphViewComponent.add(new ArrowComponent(stepComponents.get(from), stepComponents.get(to)));
+                graphViewComponent.add(new ArrowComponent<>(stepComponents.get(from), stepComponents.get(to), new Arrow() {
+                    @Override public Color getColor() {
+                        return Arrow.DEFAULT_COLOR;
+                    }
+
+                    @Override public Optional<Icon> getIcon() {
+                        return Optional.empty();
+                    }
+                }));
             }
         }
         for (Notepad notepad : transformation.getNotepads().getNotepads()) {

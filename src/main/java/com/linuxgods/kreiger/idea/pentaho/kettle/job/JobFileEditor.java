@@ -11,6 +11,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.NavigatablePsiElement;
 import com.intellij.ui.components.JBScrollPane;
 import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacet;
+import com.linuxgods.kreiger.idea.pentaho.kettle.graph.Arrow;
 import com.linuxgods.kreiger.idea.pentaho.kettle.graph.components.ArrowComponent;
 import com.linuxgods.kreiger.idea.pentaho.kettle.graph.components.GoToStepListener;
 import com.linuxgods.kreiger.idea.pentaho.kettle.graph.components.NodeComponent;
@@ -30,6 +31,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.beans.PropertyChangeListener;
 import java.util.Map;
+import java.util.Optional;
 
 import static java.awt.RenderingHints.KEY_ANTIALIASING;
 import static java.awt.RenderingHints.VALUE_ANTIALIAS_ON;
@@ -73,7 +75,15 @@ public class JobFileEditor implements FileEditor {
             Entry from = hop.getFrom().getValue();
             Entry to = hop.getTo().getValue();
             if (from != null && to != null) {
-                graphViewComponent.add(new ArrowComponent(entryComponents.get(from), entryComponents.get(to)));
+                graphViewComponent.add(new ArrowComponent(entryComponents.get(from), entryComponents.get(to), new Arrow() {
+                    @Override public Color getColor() {
+                        return hop.getColor();
+                    }
+
+                    @Override public Optional<Icon> getIcon() {
+                        return Optional.ofNullable(hop.getIcon());
+                    }
+                }));
             }
         }
 
