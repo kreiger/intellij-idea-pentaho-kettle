@@ -92,7 +92,7 @@ public class StepInlayHintsProvider implements InlayHintsProvider<NoSettings> {
                         InlayPresentation text = factory.text(from.getType().getStringValue() + ": " + from.getNameUntrimmed() + " \u27F6");
                         InlayPresentation mouseHandling = factory.mouseHandling(text, (mouseEvent, point) -> ((NavigatablePsiElement) from.getXmlTag()).navigate(true), hoverListener);
                         InlayPresentation inlayPresentation = new SequencePresentation(java.util.List.of(factory.textSpacePlaceholder(column, false), mouseHandling));
-                        sink.addBlockElement(offset, false, true, BlockInlayPriority.CODE_VISION, inlayPresentation);
+                        sink.addBlockElement(offset, false, true, 0, inlayPresentation);
                     }
                     if (from.equals(step)) {
                         int offset = xmlTag.getTextOffset();
@@ -106,7 +106,7 @@ public class StepInlayHintsProvider implements InlayHintsProvider<NoSettings> {
                         InlayPresentation text = factory.text("\u27F6 " + to.getType().getStringValue() + ": " + to.getNameUntrimmed());
                         InlayPresentation mouseHandling = factory.mouseHandling(text, (mouseEvent, point) -> ((NavigatablePsiElement) to.getXmlTag()).navigate(true), hoverListener);
                         InlayPresentation inlayPresentation = new SequencePresentation(java.util.List.of(factory.textSpacePlaceholder(column, false), mouseHandling));
-                        sink.addBlockElement(nextLineStartOffset, true, true, BlockInlayPriority.CODE_VISION, inlayPresentation);
+                        sink.addBlockElement(nextLineStartOffset, true, true, 0, inlayPresentation);
                     }
                 }
                 return true;
