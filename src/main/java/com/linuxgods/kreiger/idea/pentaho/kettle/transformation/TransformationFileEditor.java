@@ -1,16 +1,22 @@
 package com.linuxgods.kreiger.idea.pentaho.kettle.transformation;
 
+import com.intellij.ide.util.PsiNavigationSupport;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorLocation;
 import com.intellij.openapi.fileEditor.FileEditorState;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.pom.Navigatable;
 import com.intellij.psi.NavigatablePsiElement;
+import com.intellij.psi.impl.source.xml.XmlTagImpl;
+import com.intellij.psi.xml.XmlElement;
 import com.intellij.ui.components.JBScrollPane;
-import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacet;
+import com.intellij.util.xml.DomManager;
+import com.intellij.util.xml.events.DomEvent;
 import com.linuxgods.kreiger.idea.pentaho.kettle.graph.Arrow;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Hop;
 import com.linuxgods.kreiger.idea.pentaho.kettle.graph.Notepad;
@@ -40,29 +46,39 @@ public class TransformationFileEditor implements FileEditor {
     private final GraphComponent graphComponent;
     private final VirtualFile file;
 
-    public TransformationFileEditor(Project project, @NotNull VirtualFile file, PdiFacet pdiFacet) {
+    public TransformationFileEditor(@NotNull Project project, @NotNull VirtualFile file) {
         this.file = file;
         this.graphComponent = new GraphComponent(file);
-        JComponent graphViewComponent = graphComponent.getView();
-        Transformation transformation = Transformation.getTransformation(project, file);
-        createGraph(graphViewComponent, transformation, pdiFacet);
 
-        transformation.getManager().addDomEventListener(event -> {
-                LOGGER.warn("Document changed");
-                graphViewComponent.removeAll();
-                graphComponent.repaint();
-                createGraph(graphViewComponent, transformation, pdiFacet);
-                graphComponent.revalidate();
-                graphComponent.repaint();
+        DumbService.getInstance(project).runWhenSmart(() -> {
+            update(project);
+            DomManager manager = DomManager.getDomManager(project);
+            manager.addDomEventListener((@NotNull DomEvent event) -> {
+                XmlElement xmlElement = event.getElement().getXmlElement();
+                if (xmlElement != null && file.equals((xmlElement.getContainingFile().getVirtualFile()))) {
+                    update(project);
+                }
             }, this);
+        });
     }
 
-    private void createGraph(JComponent graphViewComponent, Transformation transformation, PdiFacet pdiFacet) {
+    private void update(@NotNull Project project) {
+        Transformation.getTransformation(project, file).ifPresent(transformation -> {
+            JComponent graphViewComponent = graphComponent.getView();
+            graphViewComponent.removeAll();
+            graphComponent.repaint();
+            createGraph(graphViewComponent, transformation);
+            graphComponent.revalidate();
+            graphComponent.repaint();
+        });
+    }
+
+    private void createGraph(JComponent graphViewComponent, Transformation transformation) {
         Map<Step, NodeComponent<Step>> stepComponents = transformation.getSteps().stream()
-                .collect(toMap(identity(), step -> createStepComponent(pdiFacet, step)));
+                .collect(toMap(identity(), this::createStepComponent));
         for (NodeComponent<Step> nodeComponent : stepComponents.values()) {
             nodeComponent.addMouseListener(new GoToStepListener(() -> {
-                ((NavigatablePsiElement) nodeComponent.getNode().getValue().getXmlTag()).navigate(true);
+                ((Navigatable) nodeComponent.getNode().getValue().getXmlTag()).navigate(true);
             }));
             graphViewComponent.add(nodeComponent);
 
@@ -93,8 +109,8 @@ public class TransformationFileEditor implements FileEditor {
     }
 
 
-    @NotNull private NodeComponent<Step> createStepComponent(PdiFacet facet, Step step) {
-        return new NodeComponent(new StepNode(step));
+    @NotNull private NodeComponent<Step> createStepComponent(Step step) {
+        return new NodeComponent<>(new StepNode(step));
     }
 
     @Override public @Nullable VirtualFile getFile() {

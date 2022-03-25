@@ -21,7 +21,7 @@ public class TransformationFileEditorProvider implements FileEditorProvider, Dum
 
     @Override public @NotNull FileEditor createEditor(@NotNull Project project, @NotNull VirtualFile file) {
         PdiFacet pdiFacet = PdiFacet.getInstance(project, file).orElseThrow();
-        return new TransformationFileEditor(project, file, pdiFacet);
+        return new TransformationFileEditor(project, file);
     }
 
     @Override public @NotNull @NonNls String getEditorTypeId() {

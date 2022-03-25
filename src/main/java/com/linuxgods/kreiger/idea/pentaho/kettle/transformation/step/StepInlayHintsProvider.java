@@ -43,7 +43,12 @@ public class StepInlayHintsProvider implements InlayHintsProvider<NoSettings> {
     @Nullable
     @Override
     public InlayHintsCollector getCollectorFor(@NotNull PsiFile psiFile, @NotNull Editor editor, @NotNull NoSettings noSettings, @NotNull InlayHintsSink inlayHintsSink) {
-        Transformation transformation = Transformation.getTransformation(psiFile.getProject(), psiFile.getVirtualFile());
+        Transformation transformation = Transformation.getTransformation(psiFile.getProject(), psiFile.getVirtualFile())
+                .orElse(null);
+        if (null == transformation) {
+            return null;
+        }
+
         DomManager domManager = DomManager.getDomManager(psiFile.getProject());
         return new FactoryInlayHintsCollector(editor) {
             @Override

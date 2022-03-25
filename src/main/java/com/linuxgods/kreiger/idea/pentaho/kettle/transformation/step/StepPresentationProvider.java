@@ -18,7 +18,6 @@ public class StepPresentationProvider extends PresentationProvider<Step> {
     @Override public @Nullable Icon getIcon(Step step) {
 
         String type = step.getType().getStringValue();
-        System.out.println("Presentation: "+type);
         return Optional.ofNullable(step.getModule())
                 .flatMap(PdiFacet::getInstance)
                 .flatMap(pdiFacet -> pdiFacet.getStepType(type).map(StepType::getIcon))

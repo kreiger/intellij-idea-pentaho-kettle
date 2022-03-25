@@ -11,6 +11,7 @@ import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Transformation;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.stream.Stream;
 
@@ -21,7 +22,7 @@ public class StepIndex extends ScalarIndexExtension<String> {
     public static @NotNull Stream<Step> findStepsByName(Project project, String stepName, GlobalSearchScope filter) {
         return FileBasedIndex.getInstance().getContainingFiles(NAME, stepName, filter)
                 .stream()
-                .map(file -> Transformation.getTransformation(project, file))
+                .flatMap(file -> Transformation.getTransformation(project, file).stream())
                 .flatMap(transformation -> transformation.getSteps().stream())
                 .filter(step -> stepName.equals(step.getNameUntrimmed()));
     }
@@ -51,11 +52,10 @@ public class StepIndex extends ScalarIndexExtension<String> {
     public @NotNull DataIndexer<String, Void, FileContent> getIndexer() {
         return inputData -> {
             VirtualFile file = inputData.getFile();
-            Transformation transformation = Transformation.getTransformation(inputData.getProject(), file);
-
-            return transformation.getSteps().stream()
+            return Transformation.getTransformation(inputData.getProject(), file).stream()
+                    .flatMap(transformation -> transformation.getSteps().stream())
                     .map(Step::getNameUntrimmed)
-                    .collect(HashMap::new, (map, name)->map.put(name, null), HashMap::putAll);
+                    .collect(HashMap::new, (map, name) -> map.put(name, null), HashMap::putAll);
         };
     }
 
