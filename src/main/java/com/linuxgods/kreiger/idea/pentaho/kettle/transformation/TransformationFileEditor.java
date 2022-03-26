@@ -9,6 +9,7 @@ import com.intellij.openapi.fileEditor.FileEditorState;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Key;
+import com.intellij.openapi.util.UserDataHolderBase;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.pom.Navigatable;
 import com.intellij.psi.NavigatablePsiElement;
@@ -41,7 +42,7 @@ import static java.awt.RenderingHints.VALUE_ANTIALIAS_ON;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
-public class TransformationFileEditor implements FileEditor {
+public class TransformationFileEditor extends UserDataHolderBase implements FileEditor {
     public static final Logger LOGGER = LoggerFactory.getLogger(TransformationFileEditor.class);
     private final GraphComponent graphComponent;
     private final VirtualFile file;
@@ -154,14 +155,6 @@ public class TransformationFileEditor implements FileEditor {
     }
 
     @Override public void dispose() {
-
-    }
-
-    @Override public <T> @Nullable T getUserData(@NotNull Key<T> key) {
-        return null;
-    }
-
-    @Override public <T> void putUserData(@NotNull Key<T> key, @Nullable T value) {
 
     }
 

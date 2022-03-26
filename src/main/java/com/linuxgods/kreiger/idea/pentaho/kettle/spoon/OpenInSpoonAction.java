@@ -65,7 +65,6 @@ public class OpenInSpoonAction extends AnAction {
                 var commandLine = new GeneralCommandLine(spoon.getCanonicalPath(), "-file", file.getCanonicalPath());
                 Optional<String> jdk8Home = getJdkHomeByVersion(JavaSdkVersion.JDK_1_8);
                 jdk8Home.ifPresent(homePath -> {
-                    System.out.println("Setting JAVA_HOME to "+homePath);
                     commandLine.withEnvironment("JAVA_HOME", homePath);
                 });
                 commandLine.createProcess();
@@ -78,7 +77,7 @@ public class OpenInSpoonAction extends AnAction {
     @NotNull private Optional<String> getJdkHomeByVersion(JavaSdkVersion jdkVersion) {
         JavaSdk jdkType = JavaSdk.getInstance();
         return ProjectJdkTable.getInstance().getSdksOfType(jdkType).stream()
-                .filter((Sdk jdk) -> jdkVersion.equals(jdkType.getVersion(jdk)))
+                .filter(jdk -> jdkVersion.equals(jdkType.getVersion(jdk)))
                 .filter(jdk -> jdk.getHomePath() != null)
                 .filter(jdk -> jdkType.isValidSdkHome(jdk.getHomePath()))
                 .findFirst()

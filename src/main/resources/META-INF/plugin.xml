@@ -109,7 +109,9 @@
                 text="Spoon">
             <add-to-group group-id="RevealGroup" anchor="first"/>
             <add-to-group group-id="PentahoKettleTransformationPopupGroup" anchor="first"/>
+            <add-to-group group-id="EditorContextBarMenu" anchor="first"/>
             <override-text place="PentahoGraph" text="Open in Spoon"/>
+            <override-text place="ContextToolbar" text="Open in Spoon"/>
         </action>
 
         <action id="GraphZoomLabel"
