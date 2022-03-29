@@ -6,6 +6,8 @@ import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleUtilCore;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.projectRoots.Sdk;
+import com.intellij.openapi.roots.OrderEntry;
+import com.intellij.openapi.roots.ProjectFileIndex;
 import com.intellij.openapi.util.NlsSafe;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
@@ -38,8 +40,21 @@ public class PdiFacet extends Facet<PdiFacetConfiguration> {
 
     public static Optional<PdiFacet> getInstance(Project project, VirtualFile file) {
         if (project == null || file == null) return Optional.empty();
-        return Optional.ofNullable(ModuleUtilCore.findModuleForFile(file, project))
+        return findModuleForFile(project, file)
                 .flatMap(PdiFacet::getInstance);
+    }
+
+    @NotNull
+    public static Optional<Module> findModuleForFile(Project project, VirtualFile file) {
+        ProjectFileIndex projectFileIndex = ProjectFileIndex.getInstance(project);
+        if (projectFileIndex.isInLibrary(file)) {
+            List<OrderEntry> orderEntries = projectFileIndex.getOrderEntriesForFile(file);
+            if (orderEntries.size() != 1) {
+                return Optional.empty();
+            }
+            return Optional.of(orderEntries.get(0).getOwnerModule());
+        }
+        return Optional.ofNullable(ModuleUtilCore.findModuleForFile(file, project));
     }
 
     @NotNull public Optional<PdiSdkAdditionalData> getSdkAdditionalData() {

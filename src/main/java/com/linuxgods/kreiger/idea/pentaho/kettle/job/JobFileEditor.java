@@ -2,15 +2,19 @@ package com.linuxgods.kreiger.idea.pentaho.kettle.job;
 
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorLocation;
 import com.intellij.openapi.fileEditor.FileEditorState;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Key;
+import com.intellij.openapi.util.UserDataHolderBase;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.NavigatablePsiElement;
+import com.intellij.psi.*;
+import com.intellij.psi.xml.XmlElement;
 import com.intellij.ui.components.JBScrollPane;
-import com.linuxgods.kreiger.idea.pentaho.kettle.facet.PdiFacet;
+import com.intellij.util.xml.DomManager;
 import com.linuxgods.kreiger.idea.pentaho.kettle.graph.Arrow;
 import com.linuxgods.kreiger.idea.pentaho.kettle.graph.components.ArrowComponent;
 import com.linuxgods.kreiger.idea.pentaho.kettle.graph.components.GoToStepListener;
@@ -38,32 +42,46 @@ import static java.awt.RenderingHints.VALUE_ANTIALIAS_ON;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
-public class JobFileEditor implements FileEditor {
+public class JobFileEditor extends UserDataHolderBase implements FileEditor {
     public static final Logger LOGGER = LoggerFactory.getLogger(JobFileEditor.class);
     private final GraphComponent graphComponent;
+    private final Project project;
     private final VirtualFile file;
 
-    public JobFileEditor(Project project, @NotNull VirtualFile file, PdiFacet pdiFacet) {
+    public JobFileEditor(Project project, @NotNull VirtualFile file) {
+        this.project = project;
         this.file = file;
         this.graphComponent = new GraphComponent(file);
-        JComponent graphViewComponent = graphComponent.getView();
-        @NotNull Job job = Job.getJob(project, file);
-        createGraph(graphViewComponent, job, pdiFacet);
 
-        job.getManager().addDomEventListener(event -> {
-                LOGGER.warn("Document changed");
-                graphViewComponent.removeAll();
-                graphComponent.repaint();
-                createGraph(graphViewComponent, job, pdiFacet);
-                graphComponent.revalidate();
-                graphComponent.repaint();
-            }, this);
+        DomManager manager = DomManager.getDomManager(project);
+        manager.addDomEventListener(event -> {
+            XmlElement xmlElement = event.getElement().getXmlElement();
+            if (xmlElement != null && file.equals((xmlElement.getContainingFile().getVirtualFile()))) {
+                update();
+            }
+        }, this);
+        update();
+        DumbService dumbService = DumbService.getInstance(project);
+        if (dumbService.isDumb()) {
+            dumbService.runWhenSmart(this::update);
+        }
     }
 
-    private void createGraph(JComponent graphViewComponent, Job job, PdiFacet pdiFacet) {
+    private void update() {
+        Job.getJob(project, file).ifPresent(job -> {
+            JComponent graphViewComponent = graphComponent.getView();
+            graphViewComponent.removeAll();
+            graphComponent.repaint();
+            createGraph(graphViewComponent, job);
+            graphComponent.revalidate();
+            graphComponent.repaint();
+        });
+    }
+
+    private void createGraph(JComponent graphViewComponent, Job job) {
         Map<Entry, NodeComponent<Entry>> entryComponents = job.getEntries().getEntries().stream()
                 .filter(Entry::isDraw)
-                .collect(toMap(identity(), entry -> createEntryComponent(pdiFacet, entry)));
+                .collect(toMap(identity(), this::createEntryComponent));
         for (NodeComponent<Entry> nodeComponent : entryComponents.values()) {
             nodeComponent.addMouseListener(new GoToStepListener(() -> {
                 ((NavigatablePsiElement) nodeComponent.getNode().getValue().getXmlTag()).navigate(true);
@@ -75,15 +93,18 @@ public class JobFileEditor implements FileEditor {
             Entry from = hop.getFrom().getValue();
             Entry to = hop.getTo().getValue();
             if (from != null && to != null) {
-                graphViewComponent.add(new ArrowComponent(entryComponents.get(from), entryComponents.get(to), new Arrow() {
-                    @Override public Color getColor() {
-                        return hop.getColor();
-                    }
+                graphViewComponent.add(
+                        new ArrowComponent(entryComponents.get(from), entryComponents.get(to), new Arrow() {
+                            @Override
+                            public Color getColor() {
+                                return hop.getColor();
+                            }
 
-                    @Override public Optional<Icon> getIcon() {
-                        return Optional.ofNullable(hop.getIcon());
-                    }
-                }));
+                            @Override
+                            public Optional<Icon> getIcon() {
+                                return Optional.ofNullable(hop.getIcon());
+                            }
+                        }));
             }
         }
 
@@ -98,59 +119,63 @@ public class JobFileEditor implements FileEditor {
     }
 
 
-    @NotNull private NodeComponent<Entry> createEntryComponent(PdiFacet facet, Entry entry) {
+    @NotNull
+    private NodeComponent<Entry> createEntryComponent(Entry entry) {
         return new NodeComponent<>(new EntryNode(entry));
     }
 
-    @Override public @Nullable VirtualFile getFile() {
+    @Override
+    public @Nullable VirtualFile getFile() {
         return file;
     }
 
-    @Override public @NotNull JComponent getComponent() {
+    @Override
+    public @NotNull JComponent getComponent() {
         return graphComponent;
     }
 
-    @Override public @Nullable JComponent getPreferredFocusedComponent() {
+    @Override
+    public @Nullable JComponent getPreferredFocusedComponent() {
         return graphComponent;
     }
 
-    @Override public @Nls(capitalization = Nls.Capitalization.Title) @NotNull String getName() {
+    @Override
+    public @Nls(capitalization = Nls.Capitalization.Title) @NotNull String getName() {
         return "Graph";
     }
 
-    @Override public void setState(@NotNull FileEditorState state) {
+    @Override
+    public void setState(@NotNull FileEditorState state) {
 
     }
 
-    @Override public boolean isModified() {
+    @Override
+    public boolean isModified() {
         return false;
     }
 
-    @Override public boolean isValid() {
+    @Override
+    public boolean isValid() {
         return true;
     }
 
-    @Override public void addPropertyChangeListener(@NotNull PropertyChangeListener listener) {
+    @Override
+    public void addPropertyChangeListener(@NotNull PropertyChangeListener listener) {
 
     }
 
-    @Override public void removePropertyChangeListener(@NotNull PropertyChangeListener listener) {
+    @Override
+    public void removePropertyChangeListener(@NotNull PropertyChangeListener listener) {
 
     }
 
-    @Override public @Nullable FileEditorLocation getCurrentLocation() {
+    @Override
+    public @Nullable FileEditorLocation getCurrentLocation() {
         return null;
     }
 
-    @Override public void dispose() {
-
-    }
-
-    @Override public <T> @Nullable T getUserData(@NotNull Key<T> key) {
-        return null;
-    }
-
-    @Override public <T> void putUserData(@NotNull Key<T> key, @Nullable T value) {
+    @Override
+    public void dispose() {
 
     }
 
@@ -163,7 +188,8 @@ public class JobFileEditor implements FileEditor {
             super(new BorderLayout());
             this.file = file;
             view = new JPanel(null) {
-                @Override protected void paintComponent(Graphics g) {
+                @Override
+                protected void paintComponent(Graphics g) {
                     Graphics2D g2 = (Graphics2D) g;
                     g2.setRenderingHint(KEY_ANTIALIASING, VALUE_ANTIALIAS_ON);
                     super.paintComponent(g);
@@ -185,11 +211,13 @@ public class JobFileEditor implements FileEditor {
                         maxHeight = Integer.max(maxHeight, component.getY() + (int) componentPreferredSize.getHeight());
                     }
                     int margin = Math.max(minX, minY);
-                    return new Dimension(maxWidth+margin, maxHeight+margin);
+                    return new Dimension(maxWidth + margin, maxHeight + margin);
                 }
             };
-            DefaultActionGroup toolbarGroup = (DefaultActionGroup) ActionManager.getInstance().getAction("PentahoKettleTransformationGraphToolbar");
-            ActionToolbar actionToolbar = ActionManager.getInstance().createActionToolbar("PentahoGraph", toolbarGroup, true);
+            DefaultActionGroup toolbarGroup = (DefaultActionGroup) ActionManager.getInstance()
+                    .getAction("PentahoKettleTransformationGraphToolbar");
+            ActionToolbar actionToolbar = ActionManager.getInstance()
+                    .createActionToolbar("PentahoGraph", toolbarGroup, true);
             actionToolbar.setTargetComponent(view);
             add(actionToolbar.getComponent(), BorderLayout.NORTH);
 
@@ -202,14 +230,16 @@ public class JobFileEditor implements FileEditor {
             return view;
         }
 
-        @Override public @Nullable Object getData(@NotNull @NonNls String dataId) {
+        @Override
+        public @Nullable Object getData(@NotNull @NonNls String dataId) {
             if (CommonDataKeys.VIRTUAL_FILE.is(dataId)) {
                 return this.file;
             }
             return null;
         }
 
-        @Override public void dispose() {
+        @Override
+        public void dispose() {
             getParent().remove(this);
         }
     }

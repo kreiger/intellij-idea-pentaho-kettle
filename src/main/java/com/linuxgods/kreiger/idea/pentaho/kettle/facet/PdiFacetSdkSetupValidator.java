@@ -9,6 +9,8 @@ import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleUtilCore;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.projectRoots.Sdk;
+import com.intellij.openapi.roots.OrderEntry;
+import com.intellij.openapi.roots.ProjectFileIndex;
 import com.intellij.openapi.roots.ui.configuration.SdkPopupFactory;
 import com.intellij.openapi.util.NlsContexts;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -18,6 +20,7 @@ import com.linuxgods.kreiger.idea.pentaho.kettle.sdk.PdiSdkType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -40,21 +43,22 @@ public class PdiFacetSdkSetupValidator implements ProjectSdkSetupValidator {
                 .registerNewSdk()
                 .onSdkSelected(sdk -> {
                     WriteAction.run(() -> {
-                        Module module = ModuleUtilCore.findModuleForFile(file, project);
-                        FacetManager facetManager = FacetManager.getInstance(module);
-                        PdiFacet pdiFacet = FacetManager.getInstance(module).getFacetByType(PdiFacetType.ID);
-                        if (null == pdiFacet) {
-                            pdiFacet = FacetUtil.addFacet(module, PdiFacetType.INSTANCE, PdiFacetType.NAME);
-                        }
-                        pdiFacet.getConfiguration().setSdk(sdk);
-                        facetManager.facetConfigurationChanged(pdiFacet);
-                        FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-                        Stream.of(fileEditorManager.getOpenFiles())
-                                .filter(virtualFile -> virtualFile.getFileType() instanceof PentahoKettleFileType)
-                                .forEach(virtualFile -> {
-                                    fileEditorManager.closeFile(virtualFile);
-                                    fileEditorManager.openFile(virtualFile, false);
-                                });
+                        PdiFacet.findModuleForFile(project, file).ifPresent(module -> {
+                            FacetManager facetManager = FacetManager.getInstance(module);
+                            PdiFacet pdiFacet = FacetManager.getInstance(module).getFacetByType(PdiFacetType.ID);
+                            if (null == pdiFacet) {
+                                pdiFacet = FacetUtil.addFacet(module, PdiFacetType.INSTANCE, PdiFacetType.NAME);
+                            }
+                            pdiFacet.getConfiguration().setSdk(sdk);
+                            facetManager.facetConfigurationChanged(pdiFacet);
+                            FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
+                            Stream.of(fileEditorManager.getOpenFiles())
+                                    .filter(virtualFile -> virtualFile.getFileType() instanceof PentahoKettleFileType)
+                                    .forEach(virtualFile -> {
+                                        fileEditorManager.closeFile(virtualFile);
+                                        fileEditorManager.openFile(virtualFile, false);
+                                    });
+                        });
                     });
                 })
                 .buildEditorNotificationPanelHandler();

@@ -17,6 +17,9 @@ public interface Transformation extends DomElement {
     List<Step> getSteps();
     Notepads getNotepads();
 
+    @PropertyAccessor({"step_error_handling", "error"})
+    List<StepError> getStepErrors();
+
     static Optional<Transformation> getTransformation(Project project, VirtualFile file) {
         PsiManager psiManager = PsiManager.getInstance(project);
         PsiFile psiFile = Objects.requireNonNull(psiManager.findFile(file));

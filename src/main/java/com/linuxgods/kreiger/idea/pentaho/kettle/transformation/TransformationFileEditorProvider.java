@@ -15,12 +15,10 @@ public class TransformationFileEditorProvider implements FileEditorProvider, Dum
     private static final String EDITOR_TYPE_ID = "ktr";
 
     @Override public boolean accept(@NotNull Project project, @NotNull VirtualFile file) {
-        return file.getFileType() instanceof TransformationFileType &&
-                PdiFacet.getInstance(project, file).flatMap(PdiFacet::getSdkAdditionalData).isPresent();
+        return file.getFileType() instanceof TransformationFileType;
     }
 
     @Override public @NotNull FileEditor createEditor(@NotNull Project project, @NotNull VirtualFile file) {
-        PdiFacet pdiFacet = PdiFacet.getInstance(project, file).orElseThrow();
         return new TransformationFileEditor(project, file);
     }
 

@@ -16,6 +16,7 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.xml.XmlTag;
 import com.intellij.util.xml.DomElement;
 import com.intellij.util.xml.DomManager;
+import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.TransformationLanguage;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Hop;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Transformation;
@@ -166,7 +167,7 @@ public class StepInlayHintsProvider implements InlayHintsProvider<NoSettings> {
 
     @Override
     public boolean isLanguageSupported(@NotNull Language language) {
-        return DefaultImpls.isLanguageSupported(this, language);
+        return language instanceof TransformationLanguage;
     }
 
     @Override

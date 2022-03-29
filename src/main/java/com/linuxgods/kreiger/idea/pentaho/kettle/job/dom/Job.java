@@ -12,6 +12,7 @@ import com.linuxgods.kreiger.idea.pentaho.kettle.graph.Notepads;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
+import java.util.Optional;
 
 public interface Job extends DomElement {
     Hops getHops();
@@ -20,17 +21,16 @@ public interface Job extends DomElement {
     Notepads getNotepads();
 
 
-    @NotNull static Job getJob(Project project, VirtualFile file) {
+    @NotNull static Optional<Job> getJob(Project project, VirtualFile file) {
         PsiManager psiManager = PsiManager.getInstance(project);
         PsiFile psiFile = Objects.requireNonNull(psiManager.findFile(file));
         return getJob((XmlFile) psiFile);
     }
 
-    @NotNull
-    static Job getJob(XmlFile xmlFile) {
+    static @NotNull Optional<Job> getJob(XmlFile xmlFile) {
         DomManager domManager = DomManager.getDomManager(xmlFile.getProject());
         DomFileElement<Job> fileElement = domManager.getFileElement(xmlFile, Job.class);
-        return Objects.requireNonNull(fileElement).getRootElement();
+        return Optional.ofNullable(fileElement).map(DomFileElement::getRootElement);
     }
 
 }

@@ -1,29 +1,33 @@
 package com.linuxgods.kreiger.idea.pentaho.kettle.transformation;
 
-import com.intellij.ide.util.PsiNavigationSupport;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorLocation;
 import com.intellij.openapi.fileEditor.FileEditorState;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.UserDataHolderBase;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.pom.Navigatable;
-import com.intellij.psi.NavigatablePsiElement;
-import com.intellij.psi.impl.source.xml.XmlTagImpl;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiManager;
+import com.intellij.psi.PsiTreeAnyChangeAbstractAdapter;
 import com.intellij.psi.xml.XmlElement;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.xml.DomManager;
 import com.intellij.util.xml.events.DomEvent;
 import com.linuxgods.kreiger.idea.pentaho.kettle.graph.Arrow;
-import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Hop;
 import com.linuxgods.kreiger.idea.pentaho.kettle.graph.Notepad;
+import com.linuxgods.kreiger.idea.pentaho.kettle.graph.components.ArrowComponent;
+import com.linuxgods.kreiger.idea.pentaho.kettle.graph.components.GoToStepListener;
+import com.linuxgods.kreiger.idea.pentaho.kettle.graph.components.NodeComponent;
+import com.linuxgods.kreiger.idea.pentaho.kettle.graph.components.NotepadComponent;
+import com.linuxgods.kreiger.idea.pentaho.kettle.job.JobFileEditor;
+import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Hop;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Transformation;
-import com.linuxgods.kreiger.idea.pentaho.kettle.graph.components.*;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
@@ -46,24 +50,28 @@ public class TransformationFileEditor extends UserDataHolderBase implements File
     public static final Logger LOGGER = LoggerFactory.getLogger(TransformationFileEditor.class);
     private final GraphComponent graphComponent;
     private final VirtualFile file;
+    private final Project project;
 
     public TransformationFileEditor(@NotNull Project project, @NotNull VirtualFile file) {
+        this.project = project;
         this.file = file;
         this.graphComponent = new GraphComponent(file);
 
-        DumbService.getInstance(project).runWhenSmart(() -> {
-            update(project);
-            DomManager manager = DomManager.getDomManager(project);
-            manager.addDomEventListener((@NotNull DomEvent event) -> {
-                XmlElement xmlElement = event.getElement().getXmlElement();
-                if (xmlElement != null && file.equals((xmlElement.getContainingFile().getVirtualFile()))) {
-                    update(project);
-                }
-            }, this);
-        });
+        DomManager manager = DomManager.getDomManager(project);
+        manager.addDomEventListener((@NotNull DomEvent event) -> {
+            XmlElement xmlElement = event.getElement().getXmlElement();
+            if (xmlElement != null && file.equals((xmlElement.getContainingFile().getVirtualFile()))) {
+                update();
+            }
+        }, this);
+        update();
+        DumbService dumbService = DumbService.getInstance(project);
+        if (dumbService.isDumb()) {
+            dumbService.runWhenSmart(this::update);
+        }
     }
 
-    private void update(@NotNull Project project) {
+    private void update() {
         Transformation.getTransformation(project, file).ifPresent(transformation -> {
             JComponent graphViewComponent = graphComponent.getView();
             graphViewComponent.removeAll();
