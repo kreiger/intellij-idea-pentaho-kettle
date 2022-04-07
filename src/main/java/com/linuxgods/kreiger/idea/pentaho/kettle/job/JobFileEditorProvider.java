@@ -1,8 +1,7 @@
 package com.linuxgods.kreiger.idea.pentaho.kettle.job;
 
-import com.intellij.openapi.fileEditor.FileEditor;
-import com.intellij.openapi.fileEditor.FileEditorPolicy;
-import com.intellij.openapi.fileEditor.FileEditorProvider;
+import com.intellij.openapi.fileEditor.*;
+import com.intellij.openapi.fileEditor.impl.text.TextEditorProvider;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -11,6 +10,8 @@ import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.intellij.openapi.fileEditor.TextEditorWithPreview.Layout.SHOW_PREVIEW;
 
 public class JobFileEditorProvider implements FileEditorProvider, DumbAware {
 
@@ -22,7 +23,8 @@ public class JobFileEditorProvider implements FileEditorProvider, DumbAware {
     }
 
     @Override public @NotNull FileEditor createEditor(@NotNull Project project, @NotNull VirtualFile file) {
-        return new JobFileEditor(project, file);
+        TextEditor editor = (TextEditor) TextEditorProvider.getInstance().createEditor(project, file);
+        return new KettleTextEditorWithPreview(editor, new JobFileEditor(project, file), "KjbEditor");
     }
 
     @Override public @NotNull @NonNls String getEditorTypeId() {
@@ -30,6 +32,6 @@ public class JobFileEditorProvider implements FileEditorProvider, DumbAware {
     }
 
     @Override public @NotNull FileEditorPolicy getPolicy() {
-        return FileEditorPolicy.PLACE_BEFORE_DEFAULT_EDITOR;
+        return FileEditorPolicy.HIDE_DEFAULT_EDITOR;
     }
 }

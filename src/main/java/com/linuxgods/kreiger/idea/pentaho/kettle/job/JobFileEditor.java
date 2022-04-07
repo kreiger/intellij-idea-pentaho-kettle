@@ -2,16 +2,13 @@ package com.linuxgods.kreiger.idea.pentaho.kettle.job;
 
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
-import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.fileEditor.FileEditor;
-import com.intellij.openapi.fileEditor.FileEditorLocation;
-import com.intellij.openapi.fileEditor.FileEditorState;
+import com.intellij.openapi.fileEditor.*;
+import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.UserDataHolderBase;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.*;
+import com.intellij.pom.Navigatable;
 import com.intellij.psi.xml.XmlElement;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.xml.DomManager;
@@ -84,7 +81,11 @@ public class JobFileEditor extends UserDataHolderBase implements FileEditor {
                 .collect(toMap(identity(), this::createEntryComponent));
         for (NodeComponent<Entry> nodeComponent : entryComponents.values()) {
             nodeComponent.addMouseListener(new GoToStepListener(() -> {
-                ((NavigatablePsiElement) nodeComponent.getNode().getValue().getXmlTag()).navigate(true);
+                KettleTextEditorWithPreview editor = (KettleTextEditorWithPreview) FileEditorManagerEx.getInstanceEx(project).getSelectedEditor(file);
+                if (editor.getLayout() == TextEditorWithPreview.Layout.SHOW_PREVIEW) {
+                    editor.setLayout(TextEditorWithPreview.Layout.SHOW_EDITOR_AND_PREVIEW);
+                }
+                ((Navigatable) nodeComponent.getNode().getValue().getXmlTag()).navigate(true);
             }));
             graphViewComponent.add(nodeComponent);
 

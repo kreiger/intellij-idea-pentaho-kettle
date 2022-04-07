@@ -2,29 +2,24 @@ package com.linuxgods.kreiger.idea.pentaho.kettle.transformation;
 
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
-import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.fileEditor.FileEditor;
-import com.intellij.openapi.fileEditor.FileEditorLocation;
-import com.intellij.openapi.fileEditor.FileEditorState;
+import com.intellij.openapi.fileEditor.*;
+import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.UserDataHolderBase;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.pom.Navigatable;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiManager;
-import com.intellij.psi.PsiTreeAnyChangeAbstractAdapter;
 import com.intellij.psi.xml.XmlElement;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.xml.DomManager;
 import com.intellij.util.xml.events.DomEvent;
+import com.linuxgods.kreiger.idea.pentaho.kettle.KettleIcons;
 import com.linuxgods.kreiger.idea.pentaho.kettle.graph.Arrow;
 import com.linuxgods.kreiger.idea.pentaho.kettle.graph.Notepad;
 import com.linuxgods.kreiger.idea.pentaho.kettle.graph.components.ArrowComponent;
 import com.linuxgods.kreiger.idea.pentaho.kettle.graph.components.GoToStepListener;
 import com.linuxgods.kreiger.idea.pentaho.kettle.graph.components.NodeComponent;
 import com.linuxgods.kreiger.idea.pentaho.kettle.graph.components.NotepadComponent;
-import com.linuxgods.kreiger.idea.pentaho.kettle.job.JobFileEditor;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Hop;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Step;
 import com.linuxgods.kreiger.idea.pentaho.kettle.transformation.dom.Transformation;
@@ -87,6 +82,10 @@ public class TransformationFileEditor extends UserDataHolderBase implements File
                 .collect(toMap(identity(), this::createStepComponent));
         for (NodeComponent<Step> nodeComponent : stepComponents.values()) {
             nodeComponent.addMouseListener(new GoToStepListener(() -> {
+                KettleTextEditorWithPreview editor = (KettleTextEditorWithPreview) FileEditorManagerEx.getInstanceEx(project).getSelectedEditor(file);
+                if (editor.getLayout() == TextEditorWithPreview.Layout.SHOW_PREVIEW) {
+                    editor.setLayout(TextEditorWithPreview.Layout.SHOW_EDITOR_AND_PREVIEW);
+                }
                 ((Navigatable) nodeComponent.getNode().getValue().getXmlTag()).navigate(true);
             }));
             graphViewComponent.add(nodeComponent);
@@ -98,11 +97,14 @@ public class TransformationFileEditor extends UserDataHolderBase implements File
             if (from != null && to != null) {
                 graphViewComponent.add(new ArrowComponent<>(stepComponents.get(from), stepComponents.get(to), new Arrow() {
                     @Override public Color getColor() {
-                        return Arrow.DEFAULT_COLOR;
+                        return transformation.findStepError(from, to)
+                                .map(stepError -> Arrow.FALSE_COLOR)
+                                .orElse(Arrow.DEFAULT_COLOR);
                     }
 
                     @Override public Optional<Icon> getIcon() {
-                        return Optional.empty();
+                        return transformation.findStepError(from, to)
+                                .map(stepError -> KettleIcons.FALSE);
                     }
                 }));
             }
@@ -224,6 +226,7 @@ public class TransformationFileEditor extends UserDataHolderBase implements File
         @Override public void dispose() {
             getParent().remove(this);
         }
+
     }
 
 }
