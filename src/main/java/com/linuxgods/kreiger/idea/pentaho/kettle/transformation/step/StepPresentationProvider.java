@@ -12,7 +12,7 @@ import java.util.Optional;
 
 public class StepPresentationProvider extends PresentationProvider<Step> {
     @Override public @Nullable String getName(Step step) {
-        return super.getName(step);
+        return step.getName().getStringValue();
     }
 
     @Override public @Nullable Icon getIcon(Step step) {

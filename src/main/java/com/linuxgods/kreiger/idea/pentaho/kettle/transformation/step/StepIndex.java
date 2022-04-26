@@ -34,7 +34,6 @@ public class StepIndex extends ScalarIndexExtension<String> {
 
     @Override
     public FileBasedIndex.@NotNull InputFilter getInputFilter() {
-        System.out.println("getInputFilter");
         return new DefaultFileTypeSpecificInputFilter(TransformationFileType.INSTANCE) {
             @Override
             public boolean acceptInput(@NotNull VirtualFile file) {

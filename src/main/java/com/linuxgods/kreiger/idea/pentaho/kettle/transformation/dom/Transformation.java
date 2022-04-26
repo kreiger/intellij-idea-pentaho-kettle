@@ -36,8 +36,8 @@ public interface Transformation extends DomElement {
     default Optional<StepError> findStepError(Step from, Step to) {
         return getStepErrorHandling().getErrors().stream()
                 .filter(StepError::isEnabled)
-                .filter(stepError -> from.getNameUntrimmed().equals(stepError.getSourceStep().getStringValue()))
-                .filter(stepError -> to.getNameUntrimmed().equals(stepError.getTargetStep().getStringValue()))
+                .filter(stepError -> from.getName().getRawText().equals(stepError.getSourceStep().getRawText()))
+                .filter(stepError -> to.getName().getRawText().equals(stepError.getTargetStep().getRawText()))
                 .findFirst();
     }
 

@@ -1,18 +1,20 @@
 package com.linuxgods.kreiger.idea.pentaho.kettle.job;
 
+import com.intellij.diff.util.FileEditorBase;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
-import com.intellij.openapi.fileEditor.*;
+import com.intellij.openapi.fileEditor.KettleTextEditorWithPreview;
+import com.intellij.openapi.fileEditor.TextEditorWithPreview;
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.UserDataHolderBase;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.pom.Navigatable;
 import com.intellij.psi.xml.XmlElement;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.xml.DomManager;
 import com.linuxgods.kreiger.idea.pentaho.kettle.graph.Arrow;
+import com.linuxgods.kreiger.idea.pentaho.kettle.graph.Notepad;
 import com.linuxgods.kreiger.idea.pentaho.kettle.graph.components.ArrowComponent;
 import com.linuxgods.kreiger.idea.pentaho.kettle.graph.components.GoToStepListener;
 import com.linuxgods.kreiger.idea.pentaho.kettle.graph.components.NodeComponent;
@@ -20,7 +22,6 @@ import com.linuxgods.kreiger.idea.pentaho.kettle.graph.components.NotepadCompone
 import com.linuxgods.kreiger.idea.pentaho.kettle.job.dom.Entry;
 import com.linuxgods.kreiger.idea.pentaho.kettle.job.dom.Hop;
 import com.linuxgods.kreiger.idea.pentaho.kettle.job.dom.Job;
-import com.linuxgods.kreiger.idea.pentaho.kettle.graph.Notepad;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
@@ -30,7 +31,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.awt.*;
-import java.beans.PropertyChangeListener;
 import java.util.Map;
 import java.util.Optional;
 
@@ -39,9 +39,10 @@ import static java.awt.RenderingHints.VALUE_ANTIALIAS_ON;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
-public class JobFileEditor extends UserDataHolderBase implements FileEditor {
+public class JobFileEditor extends FileEditorBase {
     public static final Logger LOGGER = LoggerFactory.getLogger(JobFileEditor.class);
     private final GraphComponent graphComponent;
+    private final JComponent component;
     private final Project project;
     private final VirtualFile file;
 
@@ -49,6 +50,8 @@ public class JobFileEditor extends UserDataHolderBase implements FileEditor {
         this.project = project;
         this.file = file;
         this.graphComponent = new GraphComponent(file);
+        DumbService dumbService = DumbService.getInstance(project);
+        this.component = dumbService.wrapWithSpoiler(graphComponent, this::update, this);
 
         DomManager manager = DomManager.getDomManager(project);
         manager.addDomEventListener(event -> {
@@ -58,10 +61,12 @@ public class JobFileEditor extends UserDataHolderBase implements FileEditor {
             }
         }, this);
         update();
-        DumbService dumbService = DumbService.getInstance(project);
-        if (dumbService.isDumb()) {
-            dumbService.runWhenSmart(this::update);
-        }
+    }
+
+    @Override
+    public void selectNotify() {
+        System.out.println("selectNotify");
+        update();
     }
 
     private void update() {
@@ -80,13 +85,17 @@ public class JobFileEditor extends UserDataHolderBase implements FileEditor {
                 .filter(Entry::isDraw)
                 .collect(toMap(identity(), this::createEntryComponent));
         for (NodeComponent<Entry> nodeComponent : entryComponents.values()) {
-            nodeComponent.addMouseListener(new GoToStepListener(() -> {
-                KettleTextEditorWithPreview editor = (KettleTextEditorWithPreview) FileEditorManagerEx.getInstanceEx(project).getSelectedEditor(file);
-                if (editor.getLayout() == TextEditorWithPreview.Layout.SHOW_PREVIEW) {
-                    editor.setLayout(TextEditorWithPreview.Layout.SHOW_EDITOR_AND_PREVIEW);
-                }
-                ((Navigatable) nodeComponent.getNode().getValue().getXmlTag()).navigate(true);
-            }));
+            Navigatable xmlTag = (Navigatable) nodeComponent.getNode().getValue().getXmlTag();
+            if (xmlTag != null) {
+                nodeComponent.addMouseListener(new GoToStepListener(() -> {
+                    KettleTextEditorWithPreview editor = (KettleTextEditorWithPreview) FileEditorManagerEx.getInstanceEx(
+                            project).getSelectedEditor(file);
+                    if (editor.getLayout() == TextEditorWithPreview.Layout.SHOW_PREVIEW) {
+                        editor.setLayout(TextEditorWithPreview.Layout.SHOW_EDITOR_AND_PREVIEW);
+                    }
+                    xmlTag.navigate(true);
+                }));
+            }
             graphViewComponent.add(nodeComponent);
 
         }
@@ -132,7 +141,7 @@ public class JobFileEditor extends UserDataHolderBase implements FileEditor {
 
     @Override
     public @NotNull JComponent getComponent() {
-        return graphComponent;
+        return component;
     }
 
     @Override
@@ -143,41 +152,6 @@ public class JobFileEditor extends UserDataHolderBase implements FileEditor {
     @Override
     public @Nls(capitalization = Nls.Capitalization.Title) @NotNull String getName() {
         return "Graph";
-    }
-
-    @Override
-    public void setState(@NotNull FileEditorState state) {
-
-    }
-
-    @Override
-    public boolean isModified() {
-        return false;
-    }
-
-    @Override
-    public boolean isValid() {
-        return true;
-    }
-
-    @Override
-    public void addPropertyChangeListener(@NotNull PropertyChangeListener listener) {
-
-    }
-
-    @Override
-    public void removePropertyChangeListener(@NotNull PropertyChangeListener listener) {
-
-    }
-
-    @Override
-    public @Nullable FileEditorLocation getCurrentLocation() {
-        return null;
-    }
-
-    @Override
-    public void dispose() {
-
     }
 
     private static class GraphComponent extends JPanel implements DataProvider, @NotNull Disposable {

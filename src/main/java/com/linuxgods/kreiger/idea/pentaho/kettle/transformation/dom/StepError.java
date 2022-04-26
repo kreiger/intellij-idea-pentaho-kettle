@@ -11,6 +11,6 @@ public interface StepError extends DomElement {
     GenericDomValue<String> getTargetStep();
     GenericDomValue<String> getIsEnabled();
     default boolean isEnabled() {
-        return "Y".equals(getIsEnabled().getStringValue());
+        return "Y".equals(getIsEnabled().getRawText());
     };
 }

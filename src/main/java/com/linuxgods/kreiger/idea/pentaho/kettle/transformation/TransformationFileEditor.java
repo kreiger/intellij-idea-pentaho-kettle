@@ -1,16 +1,18 @@
 package com.linuxgods.kreiger.idea.pentaho.kettle.transformation;
 
+import com.intellij.diff.util.FileEditorBase;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
-import com.intellij.openapi.fileEditor.*;
+import com.intellij.openapi.fileEditor.KettleTextEditorWithPreview;
+import com.intellij.openapi.fileEditor.TextEditorWithPreview;
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.UserDataHolderBase;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.pom.Navigatable;
 import com.intellij.psi.xml.XmlElement;
 import com.intellij.ui.components.JBScrollPane;
+import com.intellij.util.xml.DomElement;
 import com.intellij.util.xml.DomManager;
 import com.intellij.util.xml.events.DomEvent;
 import com.linuxgods.kreiger.idea.pentaho.kettle.KettleIcons;
@@ -32,7 +34,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.awt.*;
-import java.beans.PropertyChangeListener;
 import java.util.Map;
 import java.util.Optional;
 
@@ -41,9 +42,10 @@ import static java.awt.RenderingHints.VALUE_ANTIALIAS_ON;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
-public class TransformationFileEditor extends UserDataHolderBase implements FileEditor {
+public class TransformationFileEditor extends FileEditorBase {
     public static final Logger LOGGER = LoggerFactory.getLogger(TransformationFileEditor.class);
     private final GraphComponent graphComponent;
+    private final JComponent component;
     private final VirtualFile file;
     private final Project project;
 
@@ -51,6 +53,8 @@ public class TransformationFileEditor extends UserDataHolderBase implements File
         this.project = project;
         this.file = file;
         this.graphComponent = new GraphComponent(file);
+        DumbService dumbService = DumbService.getInstance(project);
+        this.component = dumbService.wrapWithSpoiler(graphComponent, this::update, this);
 
         DomManager manager = DomManager.getDomManager(project);
         manager.addDomEventListener((@NotNull DomEvent event) -> {
@@ -60,10 +64,12 @@ public class TransformationFileEditor extends UserDataHolderBase implements File
             }
         }, this);
         update();
-        DumbService dumbService = DumbService.getInstance(project);
-        if (dumbService.isDumb()) {
-            dumbService.runWhenSmart(this::update);
-        }
+    }
+
+    @Override
+    public void selectNotify() {
+        System.out.println("selectNotify");
+        update();
     }
 
     private void update() {
@@ -81,32 +87,45 @@ public class TransformationFileEditor extends UserDataHolderBase implements File
         Map<Step, NodeComponent<Step>> stepComponents = transformation.getSteps().stream()
                 .collect(toMap(identity(), this::createStepComponent));
         for (NodeComponent<Step> nodeComponent : stepComponents.values()) {
-            nodeComponent.addMouseListener(new GoToStepListener(() -> {
-                KettleTextEditorWithPreview editor = (KettleTextEditorWithPreview) FileEditorManagerEx.getInstanceEx(project).getSelectedEditor(file);
-                if (editor.getLayout() == TextEditorWithPreview.Layout.SHOW_PREVIEW) {
-                    editor.setLayout(TextEditorWithPreview.Layout.SHOW_EDITOR_AND_PREVIEW);
-                }
-                ((Navigatable) nodeComponent.getNode().getValue().getXmlTag()).navigate(true);
-            }));
+            Navigatable xmlTag = (Navigatable) nodeComponent.getNode().getValue().getXmlTag();
+            if (xmlTag != null) {
+                nodeComponent.addMouseListener(new GoToStepListener(() -> {
+                    KettleTextEditorWithPreview editor = (KettleTextEditorWithPreview) FileEditorManagerEx.getInstanceEx(project).getSelectedEditor(file);
+                    if (editor.getLayout() == TextEditorWithPreview.Layout.SHOW_PREVIEW) {
+                        editor.setLayout(TextEditorWithPreview.Layout.SHOW_EDITOR_AND_PREVIEW);
+                    }
+                    xmlTag.navigate(true);
+                }));
+            }
             graphViewComponent.add(nodeComponent);
 
         }
         for (Hop hop : transformation.getOrder().getHops()) {
             Step from = hop.getFrom().getValue();
             Step to = hop.getTo().getValue();
+            Navigatable stepError = (Navigatable) transformation.findStepError(from, to).map(DomElement::getXmlTag).orElse(null);
+            Navigatable hopNavigatable = (Navigatable) hop.getXmlTag();
             if (from != null && to != null) {
-                graphViewComponent.add(new ArrowComponent<>(stepComponents.get(from), stepComponents.get(to), new Arrow() {
-                    @Override public Color getColor() {
-                        return transformation.findStepError(from, to)
-                                .map(stepError -> Arrow.FALSE_COLOR)
-                                .orElse(Arrow.DEFAULT_COLOR);
-                    }
+                ArrowComponent arrow = new ArrowComponent<>(stepComponents.get(from), stepComponents.get(to),
+                        new Arrow() {
 
-                    @Override public Optional<Icon> getIcon() {
-                        return transformation.findStepError(from, to)
-                                .map(stepError -> KettleIcons.FALSE);
-                    }
-                }));
+                            @Override
+                            public Color getColor() {
+                                return Optional.ofNullable(stepError)
+                                        .map(stepError -> Arrow.FALSE_COLOR)
+                                        .orElse(Arrow.DEFAULT_COLOR);
+                            }
+
+                            @Override
+                            public Optional<Icon> getIcon() {
+                                return Optional.ofNullable(stepError)
+                                        .map(stepError -> KettleIcons.FALSE);
+                            }
+                        });
+                    arrow.addMouseListener(new GoToStepListener(() -> {
+                        (null != stepError ? stepError : hopNavigatable).navigate(true);
+                    }));
+                graphViewComponent.add(arrow);
             }
         }
         for (Notepad notepad : transformation.getNotepads().getNotepads()) {
@@ -129,7 +148,7 @@ public class TransformationFileEditor extends UserDataHolderBase implements File
     }
 
     @Override public @NotNull JComponent getComponent() {
-        return graphComponent;
+        return component;
     }
 
     @Override public @Nullable JComponent getPreferredFocusedComponent() {
@@ -138,34 +157,6 @@ public class TransformationFileEditor extends UserDataHolderBase implements File
 
     @Override public @Nls(capitalization = Nls.Capitalization.Title) @NotNull String getName() {
         return "Graph";
-    }
-
-    @Override public void setState(@NotNull FileEditorState state) {
-
-    }
-
-    @Override public boolean isModified() {
-        return false;
-    }
-
-    @Override public boolean isValid() {
-        return true;
-    }
-
-    @Override public void addPropertyChangeListener(@NotNull PropertyChangeListener listener) {
-
-    }
-
-    @Override public void removePropertyChangeListener(@NotNull PropertyChangeListener listener) {
-
-    }
-
-    @Override public @Nullable FileEditorLocation getCurrentLocation() {
-        return null;
-    }
-
-    @Override public void dispose() {
-
     }
 
     private static class GraphComponent extends JPanel implements DataProvider, @NotNull Disposable {

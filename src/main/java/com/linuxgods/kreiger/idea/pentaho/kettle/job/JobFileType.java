@@ -1,8 +1,5 @@
 package com.linuxgods.kreiger.idea.pentaho.kettle.job;
 
-import com.intellij.ide.highlighter.DomSupportEnabled;
-import com.intellij.ide.highlighter.XmlLikeFileType;
-import com.intellij.openapi.fileTypes.UIBasedFileType;
 import com.intellij.openapi.util.NlsContexts;
 import com.intellij.openapi.util.NlsSafe;
 import com.intellij.ui.IconManager;

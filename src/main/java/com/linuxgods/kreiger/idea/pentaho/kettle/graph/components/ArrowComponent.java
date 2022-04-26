@@ -18,9 +18,9 @@ import static java.lang.Math.min;
 public class ArrowComponent<T> extends JComponent {
     private Point fromPoint;
     private Point toPoint;
-    private Arrow<T> arrow;
+    private final Arrow arrow;
 
-    public ArrowComponent(NodeComponent<T> from, NodeComponent<T> to, Arrow<T> arrow) {
+    public ArrowComponent(NodeComponent<T> from, NodeComponent<T> to, Arrow arrow) {
         this.arrow = arrow;
         update(from, to);
         ComponentAdapter moveListener = new ComponentAdapter() {
