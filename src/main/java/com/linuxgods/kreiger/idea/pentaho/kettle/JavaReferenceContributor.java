@@ -3,9 +3,11 @@ package com.linuxgods.kreiger.idea.pentaho.kettle;
 import com.intellij.codeInspection.i18n.JavaI18nUtil;
 import com.intellij.patterns.PlatformPatterns;
 import com.intellij.patterns.PsiElementPattern;
+import com.intellij.patterns.XmlPatterns;
 import com.intellij.psi.*;
 import com.intellij.psi.filters.ElementFilter;
 import com.intellij.psi.filters.position.FilterPattern;
+import com.intellij.psi.xml.XmlAttributeValue;
 import com.intellij.psi.xml.XmlTag;
 import com.intellij.psi.xml.XmlText;
 import org.jetbrains.annotations.NotNull;
@@ -46,6 +48,8 @@ public class JavaReferenceContributor extends PsiReferenceContributor {
             XmlTag xmlTag = (XmlTag) element;
             String text = Arrays.stream(xmlTag.getValue().getTextElements()).map(XmlText::getValue).collect(joining());
             return Optional.of(text);
+        } else if (element instanceof XmlAttributeValue) {
+            return Optional.of(((XmlAttributeValue) element).getValue());
         }
         return Optional.empty();
     }

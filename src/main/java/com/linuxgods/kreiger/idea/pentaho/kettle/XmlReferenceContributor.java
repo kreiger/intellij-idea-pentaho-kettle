@@ -15,5 +15,6 @@ public class XmlReferenceContributor extends PsiReferenceContributor {
         //registrar.registerReferenceProvider(XML_TEXT_PATTERN, new StepReferenceProvider(element -> GlobalSearchScope.fileScope(element.getContainingFile())));
         registrar.registerReferenceProvider(XML_TEXT_PATTERN, new FileReferenceProvider());
         //registrar.registerReferenceProvider(XML_TEXT_PATTERN, new StepTypeReferenceProvider());
+        registrar.registerReferenceProvider(XmlPatterns.xmlAttributeValue(), new FileReferenceProvider());
     }
 }
